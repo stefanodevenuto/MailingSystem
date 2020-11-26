@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane fx:id="loginAndMailboxMainPane" fx:controller="progetto.client.LoginAndMailboxController" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="303.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1">
+   <children>
+      <Label layoutX="14.0" layoutY="14.0" prefHeight="18.0" prefWidth="75.0" text="Insert email:" />
+      <Button fx:id="loginBtn" onAction="#handleLoginButton" layoutX="248.0" layoutY="11.0" mnemonicParsing="false" text="Login" />
+      <TextField fx:id="insertedMail" layoutX="89.0" layoutY="11.0" />
+      <ListView fx:id="mailListView" layoutX="14.0" layoutY="72.0" prefHeight="280.0" prefWidth="200.0" />
+      <Button fx:id="deleteBtn" layoutX="65.0" layoutY="357.0" mnemonicParsing="false" prefHeight="25.0" prefWidth="92.0" text="Delete" />
+      <Label layoutX="93.0" layoutY="48.0" text="Mailbox" />
+   </children>
+</AnchorPane>

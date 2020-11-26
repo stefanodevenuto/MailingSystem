@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane fx:id="singleMailMainPane" fx:controller="progetto.client.SingleMailController" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="332.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1">
+   <children>
+      <TextField fx:id="currentEmail" layoutX="14.0" layoutY="72.0" prefHeight="280.0" prefWidth="200.0" />
+      <Button layoutX="227.0" layoutY="72.0" mnemonicParsing="false" prefHeight="25.0" prefWidth="92.0" text="Reply" />
+      <Button layoutX="227.0" layoutY="104.0" mnemonicParsing="false" prefHeight="25.0" prefWidth="92.0" text="Reply All" />
+      <Button layoutX="227.0" layoutY="137.0" mnemonicParsing="false" prefHeight="25.0" prefWidth="92.0" text="Forward" />
+      <Button layoutX="227.0" layoutY="327.0" mnemonicParsing="false" prefHeight="25.0" prefWidth="92.0" text="New" />
+   </children>
+</AnchorPane>
