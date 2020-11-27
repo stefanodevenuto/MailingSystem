@@ -16,8 +16,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class ServerLogController implements Initializable {
-    private static final int MAX_CLIENTS = 2;
-    //private GlobalMailbox globalMailbox;
+    private static final int MAX_CLIENTS = 5;
+    private Mailboxes mailboxes;
 
     @FXML
     private ListView<Mail> logListView;
@@ -25,6 +25,7 @@ public class ServerLogController implements Initializable {
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         ExecutorService executors = Executors.newFixedThreadPool(MAX_CLIENTS);
+        mailboxes = new Mailboxes();
 
         try {
             ServerSocket acceptor = new ServerSocket(4444);
@@ -35,6 +36,30 @@ public class ServerLogController implements Initializable {
                 ObjectInputStream fromClient = new ObjectInputStream(client.getInputStream());
                 ObjectOutputStream toClient = new ObjectOutputStream(client.getOutputStream());
 
+                Runnable requestsHandler = new RequestsHandler(client, fromClient, toClient, executors);
+                executors.execute(requestsHandler);
+            }
+        } catch (/*IO*/Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private class RequestsHandler implements Runnable {
+        private Socket client;
+        private ObjectInputStream fromClient;
+        private ObjectOutputStream toClient;
+        private ExecutorService executorService;
+
+        private RequestsHandler(Socket client, ObjectInputStream fromClient, ObjectOutputStream toClient, ExecutorService executorService) {
+            this.client = client;
+            this.fromClient = fromClient;
+            this.toClient = toClient;
+            this.executorService = executorService;
+        }
+
+        @Override
+        public void run() {
+            try {
                 Object request = fromClient.readObject();
 
                 if(!(request != null && request instanceof Request)) {
@@ -43,36 +68,31 @@ public class ServerLogController implements Initializable {
 
                 switch (((Request) request).getType()) {
                     case Request.GET_MAILLIST: {
-                        Mailbox m = new Mailbox("first@gmail.com");
-                        Runnable sendMailList = new SendMailList(toClient, m);
-                        executors.execute(sendMailList);
+                        Runnable sendMailList = new SendMailList(toClient, "first@gmail.com");
+                        executorService.execute(sendMailList);
                         break;
                     }
 
                 }
-
-
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        } catch (/*IO*/Exception e) {
-            e.printStackTrace();
         }
     }
 
-    public class SendMailList implements Runnable {
+    private class SendMailList implements Runnable {
+        private String address;
         private ObjectOutputStream toClient;
-        //private String clientAddress;
-        //private GlobalMailbox globalMailbox;
-        private Mailbox mailbox;
 
-        public SendMailList(ObjectOutputStream client, Mailbox m) {
-            toClient = client;
-            mailbox = m;
+        private SendMailList(ObjectOutputStream toClient, String address) {
+            this.toClient = toClient;
+            this.address = address;
         }
 
         @Override
         public void run() {
             try {
-                toClient.writeObject(mailbox.getMailList());
+                toClient.writeObject(mailboxes.getMailboxMailist(address));
             } catch(Exception e) {
                 e.printStackTrace();
             }

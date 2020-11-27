@@ -41,9 +41,15 @@ public class MainAcceptor extends Application {
                     .build();
 
             List<Mail> mails = new ArrayList<>();
-            mails.add(new Mail("title1", "text1,\"ciao"));
-            mails.add(new Mail("title2", "text2"));
-            mails.add(new Mail("title3", "text3"));
+            List<String> recipients = new ArrayList<>();
+
+            recipients.add("recipient1");
+            recipients.add("recipient2");
+            recipients.add("recipient3");
+
+            mails.add(new Mail("title1", "text1,\"ciao", recipients));
+            mails.add(new Mail("title2", "text2", recipients));
+            mails.add(new Mail("title3", "text3", recipients));
 
             beanToCsv.write(mails);
             writer.close();

@@ -66,14 +66,16 @@ public class LoginAndMailboxController {
                 System.out.println("Request sent");
                 Object o = fromServer.readObject();
 
+                // Safe cast
                 if(!(o instanceof List)) {
                     System.out.println("Client: MAILLIST FAILED");
                     return;
                 }
-
-                System.out.println("CIAO");
                 List<Mail> m = (List<Mail>) o;
+
+                // Retrieve the original ObservableList type
                 ObservableList<Mail> mailList = FXCollections.observableArrayList(m);
+
                 mailbox.setCurrentMailList(mailList);
 
             } finally {

@@ -31,4 +31,9 @@ public class Request implements Serializable {
         return body;
     }
 
+    // TODO: creare una stringa "stile log" per ogni type (saranno visualizzate nella ListView del server)
+    @Override
+    public String toString() {
+        return super.toString();
+    }
 }
