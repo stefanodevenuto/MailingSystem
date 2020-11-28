@@ -16,7 +16,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class ServerLogController implements Initializable {
-    private static final int MAX_CLIENTS = 5;
+    private static final int MAX_CLIENTS = 20;
     private Mailboxes mailboxes;
 
     @FXML
@@ -66,9 +66,12 @@ public class ServerLogController implements Initializable {
                     System.out.println("Server: BAD REQUEST"); // TODO: creare classi custom per le eccezioni
                 }
 
-                switch (((Request) request).getType()) {
+                Request r = (Request) request;
+
+                switch (r.getType()) {
                     case Request.GET_MAILLIST: {
-                        Runnable sendMailList = new SendMailList(toClient, "first@gmail.com");
+                        System.out.println("Recupero mail...");
+                        Runnable sendMailList = new SendMailList(toClient, r.getAddress());
                         executorService.execute(sendMailList);
                         break;
                     }

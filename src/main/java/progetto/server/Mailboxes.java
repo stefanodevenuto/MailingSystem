@@ -34,6 +34,11 @@ public class Mailboxes {
 
     public List<Mail> getMailboxMailist(String address) {
         Mailbox m = mailboxList.get(address);
+        if(m == null){
+            //TODO: gestire la non esistenza di un utente
+            System.out.println("UTENTE NON ESISTE");
+            return null;
+        }
         return m.getMailList();
     }
 
@@ -47,13 +52,14 @@ public class Mailboxes {
         private Lock writeLock = readWriteLock.writeLock();
 
         private String address;
+        private int tokenID;
 
         private Mailbox(String address) {
             this.address = address;
         }
 
         private List<Mail> getMailList() {
-            List<Mail> mailbox = new ArrayList<>();
+            List<Mail> mailList = new ArrayList<>();
             readLock.lock();
             try {
                 Reader reader = Files.newBufferedReader(Paths.get("C:\\Users\\stefa\\Desktop\\" + address + ".csv"));
@@ -64,15 +70,15 @@ public class Mailboxes {
                         .withSkipLines(SKIP_LINES.get())
                         .build();
 
-                mailbox = csvToBean.parse();
-                SKIP_LINES.set(mailbox.size());
+                mailList = csvToBean.parse();
+                SKIP_LINES.getAndAdd(mailList.size());
                 reader.close();
 
             }catch (Exception e) {
                 e.printStackTrace();
             } finally {
                 readLock.unlock();
-                return mailbox;
+                return mailList;
             }
         }
 

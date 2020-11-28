@@ -35,6 +35,9 @@ public class Main extends Application {
         singleMailController.initModel(mailbox);
 
         Scene scene = new Scene(root);
+        scene.getStylesheets().add(Main.class.getResource("/progetto.client/singleMail.css").toExternalForm());
+
+        primaryStage.setTitle("Client");
         primaryStage.setScene(scene);
         primaryStage.show();
     }

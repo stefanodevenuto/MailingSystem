@@ -10,23 +10,28 @@ public class Request implements Serializable {
     public static final int DELETE = 4;
     public static final int NEW = 5;
 
+    private String address;
     private int type;
     private Mail body;
 
-    public Request(int type) {
+    public Request(int type, String address) {
         this.type = type;
+        this.address = address;
         this.body = null;
     }
 
-    public Request(int type, Mail body) {
+    public Request(int type, String address, Mail body) {
         this.type = type;
+        this.address = address;
         this.body = body;
     }
 
     public int getType() {
         return type;
     }
-
+    public String getAddress() {
+        return address;
+    }
     public Mail getBody() {
         return body;
     }

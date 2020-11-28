@@ -16,6 +16,7 @@ import progetto.common.Request;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -34,7 +35,7 @@ public class LoginAndMailboxController {
     private ListView<Mail> mailListView;
 
     public void initModel(Mailbox mailbox) {
-        // ensure model is only set once:
+        // ensure model is only set once
         if (this.mailbox != null) {
             throw new IllegalStateException("Model can only be initialized once");
         }
@@ -62,15 +63,18 @@ public class LoginAndMailboxController {
                 ObjectOutputStream toServer = new ObjectOutputStream(server.getOutputStream());
                 ObjectInputStream fromServer = new ObjectInputStream(server.getInputStream());
 
-                toServer.writeObject(new Request(Request.GET_MAILLIST));
+                toServer.writeObject(new Request(Request.GET_MAILLIST, givenMailAddress));
                 System.out.println("Request sent");
                 Object o = fromServer.readObject();
+
+
 
                 // Safe cast
                 if(!(o instanceof List)) {
                     System.out.println("Client: MAILLIST FAILED");
                     return;
                 }
+
                 List<Mail> m = (List<Mail>) o;
 
                 // Retrieve the original ObservableList type
@@ -98,7 +102,7 @@ public class LoginAndMailboxController {
                 if (empty) {
                     setText(null);
                 } else {
-                    setText(mail.getTitle());
+                    setText(mail.toString());
                 }
             }
         });

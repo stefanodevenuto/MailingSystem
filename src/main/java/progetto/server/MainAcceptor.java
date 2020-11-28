@@ -47,9 +47,9 @@ public class MainAcceptor extends Application {
             recipients.add("recipient2");
             recipients.add("recipient3");
 
-            mails.add(new Mail("title1", "text1,\"ciao", recipients));
-            mails.add(new Mail("title2", "text2", recipients));
-            mails.add(new Mail("title3", "text3", recipients));
+            mails.add(new Mail("title1", "text1,\"ciao", "second@gmail.com", recipients));
+            mails.add(new Mail("title2", "text2", "second@gmail.com", recipients));
+            mails.add(new Mail("title3", "text3", "second@gmail.com", recipients));
 
             beanToCsv.write(mails);
             writer.close();
