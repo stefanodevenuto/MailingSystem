@@ -1,16 +1,55 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.RowConstraints?>
 
-<AnchorPane fx:id="loginAndMailboxMainPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="303.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="progetto.client.LoginAndMailboxController">
+<GridPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="-Infinity" minWidth="-Infinity" prefHeight="574.0" prefWidth="192.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="progetto.client.LoginAndMailboxController">
+   <columnConstraints>
+      <ColumnConstraints percentWidth="100.0" />
+   </columnConstraints>
+   <rowConstraints>
+      <RowConstraints vgrow="ALWAYS" />
+   </rowConstraints>
    <children>
-      <Label layoutX="14.0" layoutY="14.0" prefHeight="18.0" prefWidth="75.0" text="Insert email:" />
-      <Button fx:id="loginBtn" layoutX="248.0" layoutY="11.0" mnemonicParsing="false" onAction="#handleLoginButton" text="Login" />
-      <TextField fx:id="insertedMail" layoutX="89.0" layoutY="11.0" />
-      <ListView fx:id="mailListView" layoutX="14.0" layoutY="72.0" prefHeight="280.0" prefWidth="200.0" />
-      <Button fx:id="newBtn" layoutX="14.0" layoutY="361.0" mnemonicParsing="false" prefHeight="25.0" prefWidth="92.0" text="New" />
-      <Label layoutX="93.0" layoutY="48.0" text="Mailbox" />
-      <Button fx:id="deleteBtn" layoutX="122.0" layoutY="361.0" mnemonicParsing="false" prefHeight="25.0" prefWidth="92.0" text="Delete" />
+      <GridPane>
+        <columnConstraints>
+          <ColumnConstraints hgrow="SOMETIMES" maxWidth="1.7976931348623157E308" minWidth="192.0" prefWidth="192.0" />
+        </columnConstraints>
+        <rowConstraints>
+          <RowConstraints maxHeight="257.0" minHeight="0.0" prefHeight="81.0" vgrow="SOMETIMES" />
+          <RowConstraints maxHeight="1.7976931348623157E308" minHeight="10.0" prefHeight="451.0" vgrow="SOMETIMES" />
+            <RowConstraints maxHeight="1.7976931348623157E308" minHeight="10.0" prefHeight="45.0" vgrow="SOMETIMES" />
+        </rowConstraints>
+         <children>
+            <ListView fx:id="mailListView" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="200.0" prefWidth="262.0" GridPane.hgrow="ALWAYS" GridPane.rowIndex="1" />
+            <GridPane prefWidth="115.0">
+              <columnConstraints>
+                <ColumnConstraints hgrow="SOMETIMES" maxWidth="-Infinity" prefWidth="300.0" />
+              </columnConstraints>
+              <rowConstraints>
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+              </rowConstraints>
+               <children>
+                  <TextField fx:id="insertedMail" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" promptText="Insert email address here...">
+                     <GridPane.margin>
+                        <Insets />
+                     </GridPane.margin>
+                  </TextField>
+                  <Button maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#handleLoginButton" prefWidth="189.0" text="Login" GridPane.rowIndex="1">
+                     <GridPane.margin>
+                        <Insets />
+                     </GridPane.margin>
+                  </Button>
+               </children>
+            </GridPane>
+            <Button maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" mnemonicParsing="false" prefWidth="189.0" text="New" GridPane.rowIndex="2" />
+         </children>
+      </GridPane>
    </children>
-</AnchorPane>
+</GridPane>

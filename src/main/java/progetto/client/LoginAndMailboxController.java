@@ -1,7 +1,9 @@
 package progetto.client;
 
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.scene.Node;
 import progetto.common.Mail;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -12,12 +14,16 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import progetto.common.Request;
+import progetto.common.Response;
 
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -25,6 +31,8 @@ import java.util.regex.Pattern;
 public class LoginAndMailboxController {
 
     private Mailbox mailbox;
+    private Node singleMailNode;
+    private ScheduledExecutorService getMailListFixedTime;
     public static final Pattern EMAIL_ADDRESS_REGEX =
             Pattern.compile("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,6}$", Pattern.CASE_INSENSITIVE);
 
@@ -34,18 +42,24 @@ public class LoginAndMailboxController {
     @FXML
     private ListView<Mail> mailListView;
 
-    public void initModel(Mailbox mailbox) {
+    public void initModelAndScene(Mailbox mailbox, Node singleMailNode, ScheduledExecutorService getMailListFixedTime) {
         // ensure model is only set once
         if (this.mailbox != null) {
             throw new IllegalStateException("Model can only be initialized once");
         }
 
         this.mailbox = mailbox;
+        this.singleMailNode = singleMailNode;
+        this.getMailListFixedTime = getMailListFixedTime;
     }
 
     @FXML
     public void handleLoginButton(ActionEvent actionEvent) {
+
         String givenMailAddress = insertedMail.getText();
+        if(!getMailListFixedTime.isShutdown()){
+            // TODO: gestire quando premo login una seconda volta l'interruzione del primo Runnable ogni 3 sec.
+        }
 
         if(!validate(givenMailAddress)) {
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
@@ -63,19 +77,30 @@ public class LoginAndMailboxController {
                 ObjectOutputStream toServer = new ObjectOutputStream(server.getOutputStream());
                 ObjectInputStream fromServer = new ObjectInputStream(server.getInputStream());
 
-                toServer.writeObject(new Request(Request.GET_MAILLIST, givenMailAddress));
-                System.out.println("Request sent");
+                toServer.writeObject(new Request(Request.GET_FULL_MAILLIST, givenMailAddress));
+                System.out.println("Requested full maillist");
                 Object o = fromServer.readObject();
 
+                List<Mail> m;
 
+                try {
+                    m = handleResponse(o);
+                } catch (NoSuchElementException noSuchElementException){
+                    Alert alert = new Alert(Alert.AlertType.WARNING);
+                    alert.setTitle("Wrong email");
+                    alert.setContentText("The inserted email doesn't exist!");
 
-                // Safe cast
-                if(!(o instanceof List)) {
-                    System.out.println("Client: MAILLIST FAILED");
+                    alert.showAndWait();
+                    return;
+                } catch (InternalError internalError){
+                    Alert alert = new Alert(Alert.AlertType.ERROR);
+                    alert.setTitle("Internal error");
+                    alert.setContentText("Internal error: Try again later!");
+
+                    alert.showAndWait();
                     return;
                 }
 
-                List<Mail> m = (List<Mail>) o;
 
                 // Retrieve the original ObservableList type
                 ObservableList<Mail> mailList = FXCollections.observableArrayList(m);
@@ -102,7 +127,8 @@ public class LoginAndMailboxController {
                 if (empty) {
                     setText(null);
                 } else {
-                    setText(mail.toString());
+                    setText("Title: " + mail.getTitle() + "\n" +
+                            "From: " + mail.getSender() + "\n");
                 }
             }
         });
@@ -112,12 +138,97 @@ public class LoginAndMailboxController {
             public void changed(ObservableValue observable, Object oldValue, Object newValue) {
                 Mail a = (Mail) newValue;
                 mailbox.setCurrentMail(a);
+
+                singleMailNode.setVisible(true);
             }
         });
+
+        // Create a Runnable with a call to Platform.runLater
+        Runnable getCurrentMailList = new GetCurrentMailList(givenMailAddress, mailListView);
+        getMailListFixedTime.scheduleAtFixedRate(getCurrentMailList, 5, 5, TimeUnit.SECONDS);
+
     }
 
     public static boolean validate(String email) {
         Matcher matcher = EMAIL_ADDRESS_REGEX.matcher(email);
         return matcher.find();
+    }
+
+    private class GetCurrentMailList implements Runnable {
+        private String givenMailAddress;
+        private ListView<Mail> mailListView;
+
+        private GetCurrentMailList(String givenMailAddress, ListView<Mail> mailListView) {
+            this.givenMailAddress = givenMailAddress;
+            this.mailListView = mailListView;
+        }
+
+        @Override
+        public void run() {
+            Platform.runLater(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Socket server = new Socket("localhost", 4444);
+
+                        try {
+                            ObjectOutputStream toServer = new ObjectOutputStream(server.getOutputStream());
+                            ObjectInputStream fromServer = new ObjectInputStream(server.getInputStream());
+
+                            toServer.writeObject(new Request(Request.UPDATE_MAILLIST, givenMailAddress));
+
+                            Object o = fromServer.readObject();
+
+                            List<Mail> m;
+
+                            try {
+                                m = handleResponse(o);
+                            } catch (NoSuchElementException noSuchElementException){
+                                Alert alert = new Alert(Alert.AlertType.WARNING);
+                                alert.setTitle("Wrong email");
+                                alert.setContentText("The inserted email doesn't exist!");
+
+                                alert.showAndWait();
+                                return;
+                            } catch (InternalError internalError){
+                                Alert alert = new Alert(Alert.AlertType.ERROR);
+                                alert.setTitle("Internal error");
+                                alert.setContentText("Internal error: Try again later!");
+
+                                alert.showAndWait();
+                                return;
+                            }
+
+                            ObservableList<Mail> mailList = FXCollections.observableArrayList(m);
+
+                            mailListView.getItems().addAll(mailList);
+                        } finally {
+                            System.out.println("Chiuso update mailList");
+                            server.close();
+                        }
+                    } catch (Exception e){
+                        e.printStackTrace();
+                    }
+                }
+            });
+        }
+    }
+
+    private List<Mail> handleResponse(Object o) throws NoSuchElementException, InternalError{
+        if(!(o != null && o instanceof Response)) throw new InternalError();
+        Response r = (Response) o;
+        System.out.println(r.getCode());
+        switch (r.getCode()){
+            case Response.OK:{
+                return r.getBody();
+            }
+
+            case Response.ADDRESS_NOT_FOUND:{
+                throw new NoSuchElementException();
+            }
+
+            default:
+                throw new InternalError();
+        }
     }
 }

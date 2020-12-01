@@ -10,6 +10,7 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.ArrayList;
 import java.util.List;
 
 public class Mail implements Externalizable  {
@@ -81,6 +82,7 @@ public class Mail implements Externalizable  {
         out.writeObject(getTitle());
         out.writeObject(getText());
         out.writeObject(getSender());
+        out.writeObject(new ArrayList<>(recipientsProperty()));
     }
 
     @Override
@@ -88,6 +90,7 @@ public class Mail implements Externalizable  {
         setTitle((String) in.readObject());
         setText((String) in.readObject());
         setSender((String) in.readObject());
+        setRecipients((List<String>) in.readObject());
     }
 
     @Override

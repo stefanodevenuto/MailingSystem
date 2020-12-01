@@ -5,12 +5,15 @@ import progetto.common.Mail;
 import javafx.fxml.FXML;
 import javafx.scene.control.ListView;
 import progetto.common.Request;
+import progetto.common.Response;
 
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URL;
+import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.ResourceBundle;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -69,9 +72,10 @@ public class ServerLogController implements Initializable {
                 Request r = (Request) request;
 
                 switch (r.getType()) {
-                    case Request.GET_MAILLIST: {
+                    case Request.UPDATE_MAILLIST:
+                    case Request.GET_FULL_MAILLIST: {
                         System.out.println("Recupero mail...");
-                        Runnable sendMailList = new SendMailList(toClient, r.getAddress());
+                        Runnable sendMailList = new SendMailList(toClient, r.getAddress(), r.getType());
                         executorService.execute(sendMailList);
                         break;
                     }
@@ -86,17 +90,25 @@ public class ServerLogController implements Initializable {
     private class SendMailList implements Runnable {
         private String address;
         private ObjectOutputStream toClient;
+        private int requestType;
 
-        private SendMailList(ObjectOutputStream toClient, String address) {
+        private SendMailList(ObjectOutputStream toClient, String address, int requestType) {
             this.toClient = toClient;
             this.address = address;
+            this.requestType = requestType;
         }
 
         @Override
         public void run() {
             try {
-                toClient.writeObject(mailboxes.getMailboxMailist(address));
-            } catch(Exception e) {
+                toClient.writeObject(new Response(Response.OK, mailboxes.getMailboxMailist(address, requestType)));
+            } catch(NoSuchElementException noSuchElementException) {
+                try {
+                    toClient.writeObject(new Response(Response.ADDRESS_NOT_FOUND));
+                } catch (Exception e){
+                    e.printStackTrace();
+                }
+            } catch (Exception e){
                 e.printStackTrace();
             }
         }

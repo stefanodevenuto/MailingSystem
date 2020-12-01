@@ -1,13 +1,83 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
 
-<AnchorPane fx:id="singleMailMainPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="332.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="progetto.client.SingleMailController">
+<GridPane fx:id="gridPaneRegion2" minHeight="-Infinity" minWidth="-Infinity" prefHeight="575.0" prefWidth="782.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="progetto.client.SingleMailController">
+   <columnConstraints>
+      <ColumnConstraints maxWidth="1.7976931348623157E308" minWidth="500.0" percentWidth="100.0" />
+   </columnConstraints>
+   <rowConstraints>
+      <RowConstraints vgrow="ALWAYS" />
+   </rowConstraints>
    <children>
-      <TextField fx:id="currentEmail" alignment="TOP_LEFT" layoutX="14.0" layoutY="72.0" prefHeight="280.0" prefWidth="200.0" visible="false" />
-      <Button fx:id="replyBtn" onAction="#handleReplyButton" layoutX="227.0" layoutY="72.0" mnemonicParsing="false" prefHeight="25.0" prefWidth="92.0" text="Reply" visible="false" />
-      <Button fx:id="replyAllBtn" layoutX="227.0" layoutY="104.0" mnemonicParsing="false" prefHeight="25.0" prefWidth="92.0" text="Reply All" visible="false" />
-      <Button fx:id="forwardBtn" layoutX="227.0" layoutY="137.0" mnemonicParsing="false" prefHeight="25.0" prefWidth="92.0" text="Forward" visible="false" />
+      <Region fx:id="gridPaneRegion" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefWidth="660.0" style="-fx-background-color: #b0ffc4;" />
+      <ScrollPane fx:id="scrollPane" prefWidth="809.0">
+         <content>
+            <GridPane fx:id="gridPane" prefHeight="560.0" prefWidth="759.0">
+              <columnConstraints>
+                <ColumnConstraints hgrow="SOMETIMES" maxWidth="374.0" minWidth="10.0" prefWidth="67.99996948242188" />
+                <ColumnConstraints hgrow="SOMETIMES" maxWidth="690.0000305175781" minWidth="10.0" prefWidth="690.0000305175781" />
+              </columnConstraints>
+              <rowConstraints>
+                <RowConstraints maxHeight="1.7976931348623157E308" minHeight="42.0" prefHeight="42.0" valignment="CENTER" />
+                <RowConstraints maxHeight="1.7976931348623157E308" minHeight="43.0" prefHeight="43.0" />
+                  <RowConstraints fx:id="recipientsRow" maxHeight="1.7976931348623157E308" minHeight="43.0" prefHeight="43.0" />
+                <RowConstraints maxHeight="1.7976931348623157E308" minHeight="350.0" prefHeight="350.0" vgrow="ALWAYS" />
+                  <RowConstraints maxHeight="1.7976931348623157E308" minHeight="51.0" prefHeight="51.0" />
+              </rowConstraints>
+               <children>
+                  <GridPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefWidth="680.0" GridPane.columnIndex="1" GridPane.rowIndex="4">
+                    <columnConstraints>
+                      <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                      <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                    </columnConstraints>
+                    <rowConstraints>
+                      <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                    </rowConstraints>
+                     <children>
+                        <Button mnemonicParsing="false" prefHeight="32.0" prefWidth="167.0" text="Button" />
+                        <Button fx:id="forwardBtn" mnemonicParsing="false" prefHeight="32.0" prefWidth="167.0" text="Forward" GridPane.columnIndex="2" />
+                        <Button fx:id="replyBtn" mnemonicParsing="false" prefHeight="32.0" prefWidth="167.0" text="Reply" />
+                        <Button fx:id="deleteBtn" mnemonicParsing="false" prefHeight="32.0" prefWidth="167.0" text="Delete" GridPane.columnIndex="3">
+                           <GridPane.margin>
+                              <Insets right="10.0" />
+                           </GridPane.margin>
+                        </Button>
+                        <Button fx:id="replyAllBtn" mnemonicParsing="false" prefHeight="32.0" prefWidth="167.0" text="Reply All" GridPane.columnIndex="1" />
+                     </children>
+                  </GridPane>
+                  <TextField fx:id="currentSender" maxWidth="1.7976931348623157E308" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                     <GridPane.margin>
+                        <Insets right="10.0" />
+                     </GridPane.margin>
+                  </TextField>
+                  <TextField fx:id="currentTitle" maxWidth="1.7976931348623157E308" GridPane.columnIndex="1">
+                     <GridPane.margin>
+                        <Insets right="10.0" />
+                     </GridPane.margin>
+                  </TextField>
+                  <TextArea fx:id="currentText" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="200.0" prefWidth="694.0" GridPane.columnIndex="1" GridPane.rowIndex="3">
+                     <GridPane.margin>
+                        <Insets right="10.0" />
+                     </GridPane.margin>
+                  </TextArea>
+                  <Text strokeType="OUTSIDE" strokeWidth="0.0" text="Title:" wrappingWidth="35.44140625" GridPane.halignment="RIGHT" />
+                  <Text strokeType="OUTSIDE" strokeWidth="0.0" text="From:" wrappingWidth="40.087890625" GridPane.halignment="RIGHT" GridPane.rowIndex="1" />
+                  <Text strokeType="OUTSIDE" strokeWidth="0.0" text="Body:" wrappingWidth="39.13671875" GridPane.halignment="RIGHT" GridPane.rowIndex="3" GridPane.valignment="TOP" />
+                  <Text strokeType="OUTSIDE" strokeWidth="0.0" text="To:" wrappingWidth="27.087890625" GridPane.halignment="RIGHT" GridPane.rowIndex="2" />
+                  <ListView fx:id="currentRecipients" prefHeight="200.0" prefWidth="691.0" GridPane.columnIndex="1" GridPane.rowIndex="2" GridPane.valignment="BOTTOM">
+                     <GridPane.margin>
+                        <Insets bottom="5.0" right="10.0" top="5.0" />
+                     </GridPane.margin>
+                  </ListView>
+               </children>
+            </GridPane>
+         </content>
+      </ScrollPane>
    </children>
-</AnchorPane>
+</GridPane>

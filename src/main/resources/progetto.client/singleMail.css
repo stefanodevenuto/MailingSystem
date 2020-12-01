@@ -1,3 +1,15 @@
-#singleMailMainPane {
-    -fx-background-color: #35bda1;
+#gridPane {
+    -fx-background-color: #94ffb0;
+}
+
+#gridPaneRegion {
+    -fx-background-color: #94ffb0;
+}
+
+#gridPaneRegion2 {
+    -fx-background-color: #94ffb0;
+}
+
+#scrollPane {
+    -fx-background: #94ffb0;
 }

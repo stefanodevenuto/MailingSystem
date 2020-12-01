@@ -2,15 +2,15 @@ package progetto.server;
 
 import com.opencsv.bean.CsvToBean;
 import com.opencsv.bean.CsvToBeanBuilder;
+import com.opencsv.bean.StatefulBeanToCsv;
+import com.opencsv.bean.StatefulBeanToCsvBuilder;
 import progetto.common.Mail;
 
 import java.io.Reader;
+import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -32,14 +32,23 @@ public class Mailboxes {
         return m;
     }
 
-    public List<Mail> getMailboxMailist(String address) {
+    public List<Mail> getMailboxMailist(String address, int mode) throws NoSuchElementException{
         Mailbox m = mailboxList.get(address);
         if(m == null){
             //TODO: gestire la non esistenza di un utente
-            System.out.println("UTENTE NON ESISTE");
-            return null;
+            System.out.println("GetMailList: UTENTE NON ESISTE");
+            throw new NoSuchElementException();
         }
-        return m.getMailList();
+        return m.getMailList(mode);
+    }
+
+    public void updateMailboxMailist(String address) throws NoSuchElementException{
+        Mailbox m = mailboxList.get(address);
+        if(m == null){
+            System.out.println("Update: UTENTE NON ESISTE");
+            throw new NoSuchElementException();
+        }
+        m.updateMailList();
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -52,27 +61,36 @@ public class Mailboxes {
         private Lock writeLock = readWriteLock.writeLock();
 
         private String address;
-        private int tokenID;
 
         private Mailbox(String address) {
             this.address = address;
         }
 
-        private List<Mail> getMailList() {
+        private List<Mail> getMailList(int mode) {
             List<Mail> mailList = new ArrayList<>();
             readLock.lock();
             try {
                 Reader reader = Files.newBufferedReader(Paths.get("C:\\Users\\stefa\\Desktop\\" + address + ".csv"));
-
-                CsvToBean<Mail> csvToBean = new CsvToBeanBuilder<Mail>(reader)
-                        .withType(Mail.class)
-                        .withIgnoreLeadingWhiteSpace(true)
-                        .withSkipLines(SKIP_LINES.get())
-                        .build();
+                CsvToBean<Mail> csvToBean;
+                if(mode == 1){
+                    csvToBean = new CsvToBeanBuilder<Mail>(reader)
+                            .withType(Mail.class)
+                            .withIgnoreLeadingWhiteSpace(true)
+                            .withSkipLines(SKIP_LINES.get())
+                            .build();
+                }else{
+                    csvToBean = new CsvToBeanBuilder<Mail>(reader)
+                            .withType(Mail.class)
+                            .withIgnoreLeadingWhiteSpace(true)
+                            .build();
+                }
 
                 mailList = csvToBean.parse();
                 SKIP_LINES.getAndAdd(mailList.size());
                 reader.close();
+
+                // TODO: cancellazione in posizione < SKIP_LINES ==>    SKIP_LINES--;
+                //       altrimenti                              ==>    nulla
 
             }catch (Exception e) {
                 e.printStackTrace();
@@ -83,7 +101,18 @@ public class Mailboxes {
         }
 
         private void updateMailList() {
+            writeLock.lock();
+            try {
+                Writer writer = Files.newBufferedWriter(Paths.get("C:\\Users\\stefa\\Desktop\\" + address + ".csv"));
 
+                StatefulBeanToCsv<Mail> beanToCsv = new StatefulBeanToCsvBuilder<Mail>(writer)
+                        //.withQuotechar(CSVWriter.NO_QUOTE_CHARACTER)
+                        .build();
+            }catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                writeLock.unlock();
+            }
         }
     }
 }

@@ -3,12 +3,13 @@ package progetto.common;
 import java.io.Serializable;
 
 public class Request implements Serializable {
-    public static final int GET_MAILLIST = 0;
-    public static final int REPLY = 1;
-    public static final int REPLY_ALL = 2;
-    public static final int FORWARD = 3;
-    public static final int DELETE = 4;
-    public static final int NEW = 5;
+    public static final int GET_FULL_MAILLIST = 0;
+    public static final int UPDATE_MAILLIST = 1;
+    public static final int REPLY = 2;
+    public static final int REPLY_ALL = 3;
+    public static final int FORWARD = 4;
+    public static final int DELETE = 5;
+    public static final int NEW = 6;
 
     private String address;
     private int type;
