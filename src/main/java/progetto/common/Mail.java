@@ -24,7 +24,7 @@ public class Mail implements Externalizable  {
     private StringProperty text = new SimpleStringProperty();
 
     @CsvCustomBindByPosition(position = 2, converter = StringPropertyConverter.class)
-    private SimpleStringProperty sender =  new SimpleStringProperty();
+    private StringProperty sender =  new SimpleStringProperty();
 
     @CsvCustomBindByPosition(position = 3, converter = ObservableListConverter.class)
     private ObservableList<String> recipients = FXCollections.observableArrayList();
@@ -75,6 +75,9 @@ public class Mail implements Externalizable  {
     }
     public void setRecipients(List<String> current) {
         recipients.setAll(current);
+    }
+    public List<String> getRecipients() {
+        return new ArrayList<>(recipientsProperty());
     }
 
     @Override

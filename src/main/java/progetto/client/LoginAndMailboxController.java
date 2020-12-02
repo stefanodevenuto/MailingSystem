@@ -3,7 +3,8 @@ package progetto.client;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.scene.Node;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.Pane;
 import progetto.common.Mail;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -19,9 +20,9 @@ import progetto.common.Response;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.HashMap;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -31,8 +32,9 @@ import java.util.regex.Pattern;
 public class LoginAndMailboxController {
 
     private Mailbox mailbox;
-    private Node singleMailNode;
-    private ScheduledExecutorService getMailListFixedTime;
+    private HashMap<String, Pane> screenMap;
+    private BorderPane root;
+    private ScheduledExecutorService executorService;
     public static final Pattern EMAIL_ADDRESS_REGEX =
             Pattern.compile("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,6}$", Pattern.CASE_INSENSITIVE);
 
@@ -42,22 +44,23 @@ public class LoginAndMailboxController {
     @FXML
     private ListView<Mail> mailListView;
 
-    public void initModelAndScene(Mailbox mailbox, Node singleMailNode, ScheduledExecutorService getMailListFixedTime) {
+    public void initController(Mailbox mailbox, HashMap<String, Pane> screenMap, BorderPane root, ScheduledExecutorService executorService) {
         // ensure model is only set once
         if (this.mailbox != null) {
             throw new IllegalStateException("Model can only be initialized once");
         }
 
         this.mailbox = mailbox;
-        this.singleMailNode = singleMailNode;
-        this.getMailListFixedTime = getMailListFixedTime;
+        this.screenMap = screenMap;
+        this.root = root;
+        this.executorService = executorService;
     }
 
     @FXML
     public void handleLoginButton(ActionEvent actionEvent) {
 
         String givenMailAddress = insertedMail.getText();
-        if(!getMailListFixedTime.isShutdown()){
+        if(!executorService.isShutdown()){
             // TODO: gestire quando premo login una seconda volta l'interruzione del primo Runnable ogni 3 sec.
         }
 
@@ -105,6 +108,7 @@ public class LoginAndMailboxController {
                 // Retrieve the original ObservableList type
                 ObservableList<Mail> mailList = FXCollections.observableArrayList(m);
 
+                mailbox.setAddress(givenMailAddress);
                 mailbox.setCurrentMailList(mailList);
 
             } finally {
@@ -139,13 +143,14 @@ public class LoginAndMailboxController {
                 Mail a = (Mail) newValue;
                 mailbox.setCurrentMail(a);
 
-                singleMailNode.setVisible(true);
+                //screenMap.get("singleMail").setVisible(true);
+                root.setRight(screenMap.get("singleMail"));
             }
         });
 
         // Create a Runnable with a call to Platform.runLater
         Runnable getCurrentMailList = new GetCurrentMailList(givenMailAddress, mailListView);
-        getMailListFixedTime.scheduleAtFixedRate(getCurrentMailList, 5, 5, TimeUnit.SECONDS);
+        executorService.scheduleAtFixedRate(getCurrentMailList, 5, 5, TimeUnit.SECONDS);
 
     }
 

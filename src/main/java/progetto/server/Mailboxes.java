@@ -10,6 +10,7 @@ import java.io.Reader;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
@@ -32,23 +33,22 @@ public class Mailboxes {
         return m;
     }
 
-    public List<Mail> getMailboxMailist(String address, int mode) throws NoSuchElementException{
+    public List<Mail> getMailboxMailist(String address, boolean mode) throws NoSuchElementException{
         Mailbox m = mailboxList.get(address);
         if(m == null){
-            //TODO: gestire la non esistenza di un utente
             System.out.println("GetMailList: UTENTE NON ESISTE");
             throw new NoSuchElementException();
         }
         return m.getMailList(mode);
     }
 
-    public void updateMailboxMailist(String address) throws NoSuchElementException{
+    public void updateMailboxMailist(String address, Mail mail) throws NoSuchElementException{
         Mailbox m = mailboxList.get(address);
         if(m == null){
             System.out.println("Update: UTENTE NON ESISTE");
             throw new NoSuchElementException();
         }
-        m.updateMailList();
+        m.updateMailList(mail);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -66,13 +66,13 @@ public class Mailboxes {
             this.address = address;
         }
 
-        private List<Mail> getMailList(int mode) {
+        private List<Mail> getMailList(boolean mode) {
             List<Mail> mailList = new ArrayList<>();
             readLock.lock();
             try {
                 Reader reader = Files.newBufferedReader(Paths.get("C:\\Users\\stefa\\Desktop\\" + address + ".csv"));
                 CsvToBean<Mail> csvToBean;
-                if(mode == 1){
+                if(mode){
                     csvToBean = new CsvToBeanBuilder<Mail>(reader)
                             .withType(Mail.class)
                             .withIgnoreLeadingWhiteSpace(true)
@@ -100,14 +100,21 @@ public class Mailboxes {
             }
         }
 
-        private void updateMailList() {
+        private void updateMailList(Mail m) {
             writeLock.lock();
             try {
-                Writer writer = Files.newBufferedWriter(Paths.get("C:\\Users\\stefa\\Desktop\\" + address + ".csv"));
+                Writer writer = Files.newBufferedWriter(
+                        Paths.get("C:\\Users\\stefa\\Desktop\\" + address + ".csv"),
+                        StandardOpenOption.CREATE,
+                        StandardOpenOption.APPEND
+                );
 
                 StatefulBeanToCsv<Mail> beanToCsv = new StatefulBeanToCsvBuilder<Mail>(writer)
                         //.withQuotechar(CSVWriter.NO_QUOTE_CHARACTER)
                         .build();
+
+                beanToCsv.write(m);
+                writer.close();
             }catch (Exception e) {
                 e.printStackTrace();
             } finally {

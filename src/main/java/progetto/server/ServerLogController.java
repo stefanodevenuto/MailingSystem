@@ -80,6 +80,13 @@ public class ServerLogController implements Initializable {
                         break;
                     }
 
+                    case Request.REPLY:{
+                        System.out.println("Reply mail...");
+                        Runnable writeMail = new WriteMail(toClient, r.getBody());
+                        executorService.execute(writeMail);
+                        break;
+                    }
+
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -101,7 +108,10 @@ public class ServerLogController implements Initializable {
         @Override
         public void run() {
             try {
-                toClient.writeObject(new Response(Response.OK, mailboxes.getMailboxMailist(address, requestType)));
+                boolean type = false;
+                if(requestType == Request.UPDATE_MAILLIST)
+                    type = true;
+                toClient.writeObject(new Response(Response.OK, mailboxes.getMailboxMailist(address, type)));
             } catch(NoSuchElementException noSuchElementException) {
                 try {
                     toClient.writeObject(new Response(Response.ADDRESS_NOT_FOUND));
@@ -111,6 +121,36 @@ public class ServerLogController implements Initializable {
             } catch (Exception e){
                 e.printStackTrace();
             }
+        }
+    }
+
+    private class WriteMail implements Runnable{
+        private Mail newMail;
+        private ObjectOutputStream toClient;
+
+        private WriteMail(ObjectOutputStream toClient, Mail newMail) {
+            this.toClient = toClient;
+            this.newMail = newMail;
+        }
+
+        @Override
+        public void run() {
+            try {
+                for(String address : newMail.getRecipients()){
+                    System.out.println("Recupero l'address: " + address);
+                    mailboxes.updateMailboxMailist(address, newMail);
+                    toClient.writeObject(new Response(Response.OK));
+                }
+            } catch (NoSuchElementException noSuchElementException){
+                try {
+                    toClient.writeObject(new Response(Response.ADDRESS_NOT_FOUND));
+                } catch (Exception e){
+                    e.printStackTrace();
+                }
+            } catch (Exception e){
+                e.printStackTrace();
+            }
+
         }
     }
 

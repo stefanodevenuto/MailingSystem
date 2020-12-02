@@ -1,19 +1,62 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.control.TextField?>
-<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
 
-
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="424.0" prefWidth="414.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1">
+<GridPane minHeight="-Infinity" minWidth="-Infinity" prefHeight="575.0" prefWidth="782.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="progetto.client.NewMailController">
+   <columnConstraints>
+      <ColumnConstraints maxWidth="1.7976931348623157E308" minWidth="500.0" percentWidth="100.0" />
+   </columnConstraints>
+   <rowConstraints>
+      <RowConstraints vgrow="ALWAYS" />
+   </rowConstraints>
    <children>
-      <TextField layoutX="116.0" alignment="TOP_LEFT" layoutY="111.0" prefHeight="256.0" prefWidth="210.0" />
-      <Label layoutX="83.0" layoutY="46.0" prefHeight="28.0" prefWidth="33.0" text="Title:" />
-      <TextField layoutX="116.0" layoutY="80.0" prefHeight="25.0" prefWidth="210.0" />
-      <TextField layoutX="116.0" layoutY="48.0" prefHeight="25.0" prefWidth="210.0" />
-      <Label layoutX="52.0" layoutY="84.0" prefHeight="17.0" prefWidth="62.0" text="Recipients:" />
-      <Label layoutX="83.0" layoutY="222.0" prefHeight="17.0" prefWidth="27.0" text="Text:" />
-      <Button layoutX="160.0" layoutY="385.0" mnemonicParsing="false" prefHeight="25.0" prefWidth="123.0" text="Send" />
+      <Region prefWidth="660.0" style="-fx-background-color: #b0ffc4;" />
+      <GridPane fx:id="gridPane">
+        <columnConstraints>
+          <ColumnConstraints hgrow="SOMETIMES" maxWidth="374.0" minWidth="10.0" prefWidth="67.99996948242188" />
+          <ColumnConstraints hgrow="SOMETIMES" maxWidth="690.0000305175781" minWidth="10.0" prefWidth="690.0000305175781" />
+        </columnConstraints>
+        <rowConstraints>
+          <RowConstraints maxHeight="187.0" minHeight="0.0" prefHeight="42.0" vgrow="SOMETIMES" />
+            <RowConstraints maxHeight="383.0" minHeight="10.0" prefHeight="43.0" vgrow="SOMETIMES" />
+          <RowConstraints maxHeight="456.0" minHeight="10.0" prefHeight="437.0" vgrow="SOMETIMES" />
+            <RowConstraints maxHeight="51.0" minHeight="10.0" prefHeight="51.0" vgrow="SOMETIMES" />
+        </rowConstraints>
+         <children>
+            <GridPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefWidth="680.0" GridPane.columnIndex="1" GridPane.rowIndex="3">
+              <columnConstraints>
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+              </columnConstraints>
+              <rowConstraints>
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+              </rowConstraints>
+               <children>
+                  <Button fx:id="replyBtn" mnemonicParsing="false" prefHeight="32.0" prefWidth="167.0" text="Send" GridPane.halignment="CENTER" />
+               </children>
+            </GridPane>
+            <TextField fx:id="currentTitle" maxWidth="1.7976931348623157E308" GridPane.columnIndex="1">
+               <GridPane.margin>
+                  <Insets right="10.0" />
+               </GridPane.margin></TextField>
+            <TextArea fx:id="currentText" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="2">
+               <GridPane.margin>
+                  <Insets right="10.0" />
+               </GridPane.margin></TextArea>
+            <Text strokeType="OUTSIDE" strokeWidth="0.0" text="Title:" wrappingWidth="35.44140625" GridPane.halignment="RIGHT" />
+            <Text strokeType="OUTSIDE" strokeWidth="0.0" text="Body:" wrappingWidth="39.13671875" GridPane.halignment="RIGHT" GridPane.rowIndex="2" GridPane.valignment="TOP" />
+            <Text strokeType="OUTSIDE" strokeWidth="0.0" text="To:" wrappingWidth="27.087890625" GridPane.halignment="RIGHT" GridPane.rowIndex="1" />
+            <TextField fx:id="currentRecipients" maxWidth="1.7976931348623157E308" promptText="Insert email addresses comma separated" GridPane.columnIndex="1" GridPane.rowIndex="1">
+               <GridPane.margin>
+                  <Insets right="10.0" />
+               </GridPane.margin>
+               <tooltip>
+                  <Tooltip text="Insert email addresses comma separated" />
+               </tooltip>
+            </TextField>
+         </children>
+      </GridPane>
    </children>
-</AnchorPane>
+</GridPane>

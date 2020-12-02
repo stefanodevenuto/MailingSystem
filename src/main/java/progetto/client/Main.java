@@ -5,13 +5,15 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
 
+import java.util.HashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 public class Main extends Application {
-    ScheduledExecutorService getMailListFixedTime = Executors.newScheduledThreadPool(1);
+    ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
 
     @Override
     public void start(Stage primaryStage) throws Exception{
@@ -21,15 +23,21 @@ public class Main extends Application {
         //primaryStage.show();
 
         BorderPane root = new BorderPane();
+        HashMap<String, Pane> screenMap = new HashMap<>();
 
 
         FXMLLoader loginAndMailboxLoader = new FXMLLoader(getClass().getResource("/progetto.client/loginAndMailbox.fxml"));
-        root.setLeft(loginAndMailboxLoader.load());
-        LoginAndMailboxController loginAndMailboxController = loginAndMailboxLoader.getController();
-
         FXMLLoader singleMailLoader = new FXMLLoader(getClass().getResource("/progetto.client/singleMail.fxml"));
-        Node singleMailNode = singleMailLoader.load();
-        root.setRight(singleMailNode);
+        FXMLLoader newMailLoader = new FXMLLoader(getClass().getResource("/progetto.client/newMail.fxml"));
+
+        screenMap.put("loginAndMailbox", loginAndMailboxLoader.load());
+        screenMap.put("singleMail", singleMailLoader.load());
+        screenMap.put("newMail", newMailLoader.load());
+
+        root.setLeft(screenMap.get("loginAndMailbox"));
+        root.setRight(screenMap.get("singleMail"));
+
+        LoginAndMailboxController loginAndMailboxController = loginAndMailboxLoader.getController();
         SingleMailController singleMailController = singleMailLoader.getController();
 
         // Css
@@ -38,8 +46,8 @@ public class Main extends Application {
 
         // New Model
         Mailbox mailbox = new Mailbox();
-        loginAndMailboxController.initModelAndScene(mailbox, singleMailNode, getMailListFixedTime);
-        singleMailController.initModel(mailbox);
+        loginAndMailboxController.initController(mailbox, screenMap, root, executorService);
+        singleMailController.initController(mailbox, screenMap, root);
 
         primaryStage.setTitle("Client");
         primaryStage.setScene(scene);
@@ -48,7 +56,7 @@ public class Main extends Application {
 
     @Override
     public void stop(){
-        getMailListFixedTime.shutdown();
+        executorService.shutdown();
     }
 
 
