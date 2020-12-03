@@ -1,10 +1,10 @@
 package progetto.server;
 
-import com.opencsv.bean.CsvToBean;
-import com.opencsv.bean.CsvToBeanBuilder;
-import com.opencsv.bean.StatefulBeanToCsv;
-import com.opencsv.bean.StatefulBeanToCsvBuilder;
+import com.opencsv.bean.*;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import progetto.common.Mail;
+import progetto.common.Request;
 
 import java.io.Reader;
 import java.io.Writer;
@@ -18,19 +18,29 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Mailboxes {
-    private static Map<String, Mailbox> mailboxList;
+    private Map<String, Mailbox> mailboxList;
+    private ObservableList<Request> logs = FXCollections.observableArrayList();
 
     public Mailboxes() {
         mailboxList = new HashMap<>();
         newMailbox("first@gmail.com");
         newMailbox("second@gmail.com");
         newMailbox("third@gmail.com");
+        newMailbox("fourth@gmail.com");
+        newMailbox("fifth@gmail.com");
     }
 
     private Mailbox newMailbox(String address) {
         Mailbox m = new Mailbox(address);
         mailboxList.put(address, m);
         return m;
+    }
+
+    public ObservableList<Request> logsProperty() {
+        return logs;
+    }
+    public void setLogs(ObservableList<Request> current) {
+        logs = current;
     }
 
     public List<Mail> getMailboxMailist(String address, boolean mode) throws NoSuchElementException{
@@ -72,16 +82,33 @@ public class Mailboxes {
             try {
                 Reader reader = Files.newBufferedReader(Paths.get("C:\\Users\\stefa\\Desktop\\" + address + ".csv"));
                 CsvToBean<Mail> csvToBean;
+                /*
+                 * This filter ignores empty lines from the input
+                 */
+                CsvToBeanFilter ignoreEmptyLines = strings -> {
+                    for (String one : strings) {
+                        if (one != null && one.length() > 0) {
+                            return true;
+                        }
+                    }
+                    return false;
+                };
+
                 if(mode){
                     csvToBean = new CsvToBeanBuilder<Mail>(reader)
                             .withType(Mail.class)
                             .withIgnoreLeadingWhiteSpace(true)
+                            .withFilter(ignoreEmptyLines)
                             .withSkipLines(SKIP_LINES.get())
                             .build();
                 }else{
+                    /*
+                     * This filter ignores empty lines from the input
+                     */
                     csvToBean = new CsvToBeanBuilder<Mail>(reader)
                             .withType(Mail.class)
                             .withIgnoreLeadingWhiteSpace(true)
+                            .withFilter(ignoreEmptyLines)
                             .build();
                 }
 
@@ -93,7 +120,7 @@ public class Mailboxes {
                 //       altrimenti                              ==>    nulla
 
             }catch (Exception e) {
-                e.printStackTrace();
+                return mailList;
             } finally {
                 readLock.unlock();
                 return mailList;

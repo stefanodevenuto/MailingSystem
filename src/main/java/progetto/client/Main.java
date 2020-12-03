@@ -39,6 +39,7 @@ public class Main extends Application {
 
         LoginAndMailboxController loginAndMailboxController = loginAndMailboxLoader.getController();
         SingleMailController singleMailController = singleMailLoader.getController();
+        NewMailController newMailController = newMailLoader.getController();
 
         // Css
         Scene scene = new Scene(root);
@@ -48,6 +49,7 @@ public class Main extends Application {
         Mailbox mailbox = new Mailbox();
         loginAndMailboxController.initController(mailbox, screenMap, root, executorService);
         singleMailController.initController(mailbox, screenMap, root);
+        newMailController.initModel(mailbox);
 
         primaryStage.setTitle("Client");
         primaryStage.setScene(scene);

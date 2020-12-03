@@ -3,6 +3,7 @@ package progetto.client;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
 import progetto.common.Mail;
@@ -10,10 +11,6 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ListCell;
-import javafx.scene.control.ListView;
-import javafx.scene.control.TextField;
 import progetto.common.Request;
 import progetto.common.Response;
 
@@ -57,6 +54,15 @@ public class LoginAndMailboxController {
     }
 
     @FXML
+    public void handleNewButton(ActionEvent actionEvent) {
+        Mail newMail = new Mail();
+
+        mailbox.setCurrentMail(newMail);
+
+        root.setRight(screenMap.get("newMail"));
+    }
+
+    @FXML
     public void handleLoginButton(ActionEvent actionEvent) {
 
         String givenMailAddress = insertedMail.getText();
@@ -80,36 +86,42 @@ public class LoginAndMailboxController {
                 ObjectOutputStream toServer = new ObjectOutputStream(server.getOutputStream());
                 ObjectInputStream fromServer = new ObjectInputStream(server.getInputStream());
 
-                toServer.writeObject(new Request(Request.GET_FULL_MAILLIST, givenMailAddress));
-                System.out.println("Requested full maillist");
-                Object o = fromServer.readObject();
-
-                List<Mail> m;
-
                 try {
-                    m = handleResponse(o);
-                } catch (NoSuchElementException noSuchElementException){
-                    Alert alert = new Alert(Alert.AlertType.WARNING);
-                    alert.setTitle("Wrong email");
-                    alert.setContentText("The inserted email doesn't exist!");
+                    toServer.writeObject(new Request(Request.GET_FULL_MAILLIST, givenMailAddress));
+                    System.out.println("Requested full maillist");
+                    Object o = fromServer.readObject();
 
-                    alert.showAndWait();
-                    return;
-                } catch (InternalError internalError){
-                    Alert alert = new Alert(Alert.AlertType.ERROR);
-                    alert.setTitle("Internal error");
-                    alert.setContentText("Internal error: Try again later!");
+                    List<Mail> m;
 
-                    alert.showAndWait();
-                    return;
+                    try {
+                        m = handleResponse(o);
+                    } catch (NoSuchElementException noSuchElementException){
+                        Alert alert = new Alert(Alert.AlertType.WARNING);
+                        alert.setTitle("Wrong email");
+                        alert.setContentText("The inserted email doesn't exist!");
+
+                        alert.showAndWait();
+                        return;
+                    } catch (InternalError internalError){
+                        Alert alert = new Alert(Alert.AlertType.ERROR);
+                        alert.setTitle("Internal error");
+                        alert.setContentText("Internal error: Try again later!");
+
+                        alert.showAndWait();
+                        return;
+                    }
+
+
+                    // Retrieve the original ObservableList type
+                    ObservableList<Mail> mailList = FXCollections.observableArrayList(m);
+
+                    mailbox.setAddress(givenMailAddress);
+                    mailbox.setCurrentMailList(mailList);
+                } finally {
+                    toServer.close();
+                    fromServer.close();
                 }
 
-
-                // Retrieve the original ObservableList type
-                ObservableList<Mail> mailList = FXCollections.observableArrayList(m);
-
-                mailbox.setAddress(givenMailAddress);
-                mailbox.setCurrentMailList(mailList);
 
             } finally {
                 System.out.println("Chiuso");
@@ -208,7 +220,7 @@ public class LoginAndMailboxController {
 
                             mailListView.getItems().addAll(mailList);
                         } finally {
-                            System.out.println("Chiuso update mailList");
+                            //System.out.println("Chiuso update mailList");
                             server.close();
                         }
                     } catch (Exception e){
@@ -222,7 +234,7 @@ public class LoginAndMailboxController {
     private List<Mail> handleResponse(Object o) throws NoSuchElementException, InternalError{
         if(!(o != null && o instanceof Response)) throw new InternalError();
         Response r = (Response) o;
-        System.out.println(r.getCode());
+        //System.out.println(r.getCode());
         switch (r.getCode()){
             case Response.OK:{
                 return r.getBody();

@@ -71,71 +71,46 @@ public class SingleMailController {
     private Button sendBtn;
 
     @FXML
-    public void handleSendButton(ActionEvent actionEvent) {
-        Mail newMail = new Mail();
-
-        newMail.setTitle(currentTitle.getText());
-        newMail.setSender(mailbox.getAddress());
-        newMail.setRecipients(currentRecipients.getItems());
-        newMail.setText(currentText.getText());
-
-        System.out.println(currentRecipients.getItems());
-
-        System.out.println(newMail.getRecipients());
-
-        try {
-            Socket server = new Socket("localhost", 4444);
-
-            try {
-                ObjectOutputStream toServer = new ObjectOutputStream(server.getOutputStream());
-                ObjectInputStream fromServer = new ObjectInputStream(server.getInputStream());
-
-                toServer.writeObject(new Request(Request.REPLY, mailbox.getAddress(), newMail));
-
-                Object o = fromServer.readObject();
-
-                if(o != null && o instanceof Response){
-                    System.out.println(((Response)o).getCode());
-                }
-            } finally {
-                System.out.println("Chiuso");
-                server.close();
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    @FXML
     public void handleReplyButton(ActionEvent actionEvent) {
-        unbindAll();
 
         List<String> newRecipient = new ArrayList<>();
         newRecipient.add(mailbox.getCurrentMail().getSender());
 
-        currentTitle.setText("");
-        currentSender.setText("");
-        currentRecipients.setItems(FXCollections.observableList(newRecipient));
-        currentText.setText("");
+        Mail m = new Mail();
+        m.setRecipients(newRecipient);
 
-        replyBtn.setVisible(false);
-        replyAllBtn.setVisible(false);
-        forwardBtn.setVisible(false);
-        deleteBtn.setVisible(false);
+        mailbox.setCurrentMail(m);
 
-        sendBtn.setVisible(true);
+        root.setRight(screenMap.get("newMail"));
+        System.out.println("Sto settando come recipients: " + newRecipient);
+
+    }
+
+    @FXML
+    public void handleReplyAllButton(ActionEvent actionEvent) {
+
+        List<String> newRecipients = mailbox.getCurrentMail().getRecipients();
+
+        newRecipients.remove(mailbox.getAddress());
+        if(!newRecipients.contains(mailbox.getCurrentMail().getSender()))
+            newRecipients.add(mailbox.getCurrentMail().getSender());
+
+        Mail m = new Mail();
+        m.setRecipients(newRecipients);
+
+        mailbox.setCurrentMail(m);
+
+        root.setRight(screenMap.get("newMail"));
+        System.out.println("Sto settando come recipients: " + newRecipients);
+
     }
 
     @FXML
     public void handleForwardButton(ActionEvent actionEvent){
-        // TODO: da rifare la View e da implemntare il metodo giusto
         Mail newMail = new Mail();
 
-        List<String> newRecipient = new ArrayList<>();
-        newRecipient.add(mailbox.getCurrentMail().getSender());
-
-        newMail.setRecipients(newRecipient);
+        newMail.setText(mailbox.getCurrentMail().getText());
+        //newMail.setRecipients(null);
 
         mailbox.setCurrentMail(newMail);
 
@@ -157,13 +132,6 @@ public class SingleMailController {
             public void changed(ObservableValue observable, Object oldObj, Object newObj) {
                 Mail oldMail = (Mail) oldObj;
                 Mail newMail = (Mail) newObj;
-
-                replyBtn.setVisible(true);
-                replyAllBtn.setVisible(true);
-                forwardBtn.setVisible(true);
-                deleteBtn.setVisible(true);
-
-                sendBtn.setVisible(false);
 
                 if (oldMail != null) {
                     unbindAll();

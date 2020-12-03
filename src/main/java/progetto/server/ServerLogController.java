@@ -1,6 +1,7 @@
 package progetto.server;
 
 import javafx.fxml.Initializable;
+import javafx.scene.control.ListCell;
 import progetto.common.Mail;
 import javafx.fxml.FXML;
 import javafx.scene.control.ListView;
@@ -23,27 +24,86 @@ public class ServerLogController implements Initializable {
     private Mailboxes mailboxes;
 
     @FXML
-    private ListView<Mail> logListView;
+    private ListView<Request> logListView;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-        ExecutorService executors = Executors.newFixedThreadPool(MAX_CLIENTS);
         mailboxes = new Mailboxes();
 
-        try {
-            ServerSocket acceptor = new ServerSocket(4444);
-            while(true) {
-                Socket client = acceptor.accept();
-                System.out.println("Accettato");
+        // Set the entire MailList (ObservableList<Mail>) to the ListView
+        logListView.setItems(mailboxes.logsProperty());
 
-                ObjectInputStream fromClient = new ObjectInputStream(client.getInputStream());
-                ObjectOutputStream toClient = new ObjectOutputStream(client.getOutputStream());
+        // Show the title of the Mail for each one in the ObservableList
+        logListView.setCellFactory(lv -> new ListCell<Request>() {
+            @Override
+            public void updateItem(Request r, boolean empty) {
+                super.updateItem(r, empty);
+                if (empty) {
+                    setText(null);
+                } else {
+                    switch (r.getType()) {
+                        case Request.GET_FULL_MAILLIST: {
+                            setText("Request of full mailList started by " + r.getAddress());
+                            break;
+                        }
 
-                Runnable requestsHandler = new RequestsHandler(client, fromClient, toClient, executors);
-                executors.execute(requestsHandler);
+                        case Request.UPDATE_MAILLIST:{
+                            setText("Request of incremental mailList by " + r.getAddress());
+                            break;
+                        }
+
+                        case Request.SEND:{
+                            Mail m = r.getBody();
+                            StringBuilder s = new StringBuilder("Send mail request by " + r.getAddress() + " to ");
+                            for(String recipient : m.getRecipients()){
+                                s.append(recipient).append(", ");
+                            }
+                            s.deleteCharAt(s.length()-1);
+                            setText(s.toString());
+                            break;
+                        }
+
+                        default:{
+                            StringBuilder s = new StringBuilder("Bad request from ");
+                            if(r.getAddress() != null){
+                                s.append(r.getAddress());
+                            } else {
+                                s.append("Unknown");
+                            }
+                            break;
+                        }
+
+                    }
+                }
             }
-        } catch (/*IO*/Exception e) {
-            e.printStackTrace();
+        });
+
+        Runnable startListener = new StartListener();
+        Thread t = new Thread(startListener);
+        t.start();
+    }
+
+    public class StartListener implements Runnable{
+
+        @Override
+        public void run() {
+            System.out.println("Ascolto");
+            ExecutorService executors = Executors.newFixedThreadPool(MAX_CLIENTS);
+            try {
+                ServerSocket acceptor = new ServerSocket(4444);
+                while(true) {
+                    Socket client = acceptor.accept();
+                    //System.out.println("Accettato");
+
+                    ObjectInputStream fromClient = new ObjectInputStream(client.getInputStream());
+                    ObjectOutputStream toClient = new ObjectOutputStream(client.getOutputStream());
+
+                    Runnable requestsHandler = new RequestsHandler(client, fromClient, toClient, executors);
+                    executors.execute(requestsHandler);
+                }
+            } catch (/*IO*/Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -74,20 +134,22 @@ public class ServerLogController implements Initializable {
                 switch (r.getType()) {
                     case Request.UPDATE_MAILLIST:
                     case Request.GET_FULL_MAILLIST: {
-                        System.out.println("Recupero mail...");
+                        //System.out.println("Recupero mail...");
                         Runnable sendMailList = new SendMailList(toClient, r.getAddress(), r.getType());
                         executorService.execute(sendMailList);
                         break;
                     }
 
-                    case Request.REPLY:{
-                        System.out.println("Reply mail...");
+                    case Request.SEND:{
+                        System.out.println("Reply mail...: " + r.getBody().getRecipients());
                         Runnable writeMail = new WriteMail(toClient, r.getBody());
                         executorService.execute(writeMail);
                         break;
                     }
 
                 }
+
+                logListView.getItems().add(r);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -137,10 +199,10 @@ public class ServerLogController implements Initializable {
         public void run() {
             try {
                 for(String address : newMail.getRecipients()){
-                    System.out.println("Recupero l'address: " + address);
+                    System.out.println("Invio a: " + address);
                     mailboxes.updateMailboxMailist(address, newMail);
-                    toClient.writeObject(new Response(Response.OK));
                 }
+                toClient.writeObject(new Response(Response.OK));
             } catch (NoSuchElementException noSuchElementException){
                 try {
                     toClient.writeObject(new Response(Response.ADDRESS_NOT_FOUND));

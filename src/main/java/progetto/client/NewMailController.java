@@ -2,15 +2,20 @@ package progetto.client;
 
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import progetto.common.Mail;
+import progetto.common.Request;
+import progetto.common.Response;
 
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 public class NewMailController {
     private Mailbox mailbox;
@@ -19,13 +24,45 @@ public class NewMailController {
     private TextField currentTitle;
 
     @FXML
-    private TextField currentSender;
+    private TextField currentRecipientsTextField;
 
     @FXML
-    private TextField currentRecipients;
+    private ListView<String> currentRecipientsListView;
 
     @FXML
     private TextArea currentText;
+
+    @FXML
+    public void handleSendButton(ActionEvent actionEvent) {
+        mailbox.getCurrentMail().setSender(mailbox.getAddress());
+        try {
+            Socket server = new Socket("localhost", 4444);
+
+            try {
+                ObjectOutputStream toServer = new ObjectOutputStream(server.getOutputStream());
+                ObjectInputStream fromServer = new ObjectInputStream(server.getInputStream());
+                try{
+                    toServer.writeObject(new Request(Request.SEND, mailbox.getAddress(), mailbox.getCurrentMail()));
+
+                    Object o = fromServer.readObject();
+
+                    if(o != null && o instanceof Response){
+                        System.out.println(((Response)o).getCode());
+                    }
+                } finally {
+                    toServer.close();
+                    fromServer.close();
+                }
+
+            } finally {
+                System.out.println("Chiuso");
+                server.close();
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     public void initModel(Mailbox mailbox) {
         // ensure model is only set once:
@@ -35,42 +72,52 @@ public class NewMailController {
 
         this.mailbox = mailbox;
 
-        mailbox.setCurrentMail(new Mail());
+        //mailbox.setCurrentMail(new Mail());
 
-        ChangeListener<String> recipientsListener = new ChangeListener() {
-            @Override
-            public void changed(ObservableValue observable, Object oldObj, Object newObj) {
-                if(newObj != null && newObj instanceof String){
-                    String givenRecipients = (String) newObj;
-                    String[] recipients = givenRecipients.split(";");
+        ChangeListener<Boolean> recipientsListener = (observable, oldProperty, newProperty) -> {
+            if(!newProperty){
+                String givenRecipients = currentRecipientsTextField.getText();
+                String[] recipients = givenRecipients.split(";");
 
-                    mailbox.getCurrentMail().setRecipients(new ArrayList<>(Arrays.asList(recipients)));
-                }
+                mailbox.getCurrentMail().setRecipients(new ArrayList<>(Arrays.asList(recipients)));
+
+                System.out.println(Arrays.toString(recipients));
+
+            }else{
+                System.out.println("2");
             }
         };
 
-        this.mailbox.currentMailProperty().addListener(new ChangeListener() {
+        this.mailbox.currentMailProperty().addListener(new ChangeListener<Mail>() {
             @Override
-            public void changed(ObservableValue observable, Object oldObj, Object newObj) {
-                Mail oldMail = (Mail) oldObj;
-                Mail newMail = (Mail) newObj;
+            public void changed(ObservableValue observable, Mail oldMail, Mail newMail) {
+
+                if(newMail.getRecipients().isEmpty()){
+                    System.out.println("Arrivo da una Forward/New");
+                    currentRecipientsTextField.setVisible(true);
+                    currentRecipientsListView.setVisible(false);
+                } else {
+                    System.out.println("Arrivo da una Reply/Reply All: " + newMail.getRecipients());
+                    currentRecipientsTextField.setVisible(false);
+                    currentRecipientsListView.setVisible(true);
+                }
 
                 if (oldMail != null) {
                     currentTitle.textProperty().unbindBidirectional(oldMail.titleProperty());
-                    currentSender.textProperty().unbindBidirectional(oldMail.senderProperty());
-                    currentRecipients.textProperty().removeListener(recipientsListener);
+                    currentRecipientsTextField.focusedProperty().removeListener(recipientsListener);
+                    currentRecipientsListView.setItems(null);
                     currentText.textProperty().unbindBidirectional(oldMail.textProperty());
                 }
                 if (newMail == null) {
                     currentTitle.setText("");
-                    currentSender.setText("");
-                    currentRecipients.setText("");
+                    currentRecipientsTextField.setText("");
+                    currentRecipientsListView.setItems(null);
                     currentText.setText("");
 
                 } else {
                     currentTitle.textProperty().bindBidirectional(newMail.titleProperty());
-                    currentSender.textProperty().bindBidirectional(newMail.senderProperty());
-                    currentRecipients.textProperty().addListener(recipientsListener);
+                    currentRecipientsTextField.focusedProperty().addListener(recipientsListener);
+                    currentRecipientsListView.setItems(newMail.recipientsProperty());
                     currentText.textProperty().bindBidirectional(newMail.textProperty());
                 }
             }

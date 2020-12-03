@@ -2,6 +2,7 @@ package progetto.server;
 
 import com.opencsv.bean.StatefulBeanToCsv;
 import com.opencsv.bean.StatefulBeanToCsvBuilder;
+import javafx.scene.Scene;
 import progetto.common.Mail;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
@@ -19,17 +20,18 @@ public class MainAcceptor extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception{
         BorderPane root = new BorderPane();
+        FXMLLoader serverLogLoader = new FXMLLoader(getClass().getResource("/progetto.server/logServer.fxml"));
+        root.setCenter(serverLogLoader.load());
 
-        FXMLLoader logServerLoader = new FXMLLoader(getClass().getResource("/progetto.server/logServer.fxml"));
-        root.setCenter(logServerLoader.load());
-        ServerLogController logServerController = logServerLoader.getController();
+        ServerLogController serverLogController = serverLogLoader.getController();
 
-        //GlobalMailbox globalMailbox = new GlobalMailbox();
-        //logServerController.initModel();
+        Scene scene = new Scene(root);
+        primaryStage.setTitle("Server");
+        primaryStage.setScene(scene);
+        primaryStage.show();
     }
 
     public static void main(String[] args) {
-
         // TODO: da rimuovere, solo per provare
         try {
 
@@ -42,22 +44,21 @@ public class MainAcceptor extends Application {
             List<Mail> mails = new ArrayList<>();
             List<String> recipientsOne = new ArrayList<>();
 
-            recipientsOne.add("recipient1");
-            recipientsOne.add("recipient2");
-            recipientsOne.add("recipient3");
+            recipientsOne.add("first@gmail.com");
+            recipientsOne.add("second@gmail.com");
+            recipientsOne.add("third@gmail.com");
 
             List<String> recipientsTwo = new ArrayList<>();
 
-            recipientsTwo.add("recipient1");
-            recipientsTwo.add("recipient2");
+            recipientsTwo.add("first@gmail.com");
+            recipientsTwo.add("second@gmail.com");
 
             List<String> recipientsThree = new ArrayList<>();
 
-            recipientsThree.add("recipient1");
-            recipientsThree.add("recipient2");
-            recipientsThree.add("recipient3");
-            recipientsThree.add("recipient4");
-            recipientsThree.add("recipient5");
+            recipientsThree.add("first@gmail.com");
+            recipientsThree.add("third@gmail.com");
+            recipientsThree.add("fourth@gmail.com");
+            recipientsThree.add("fifth@gmail.com");
 
             mails.add(new Mail("title1", "text1,\"ciao", "second@gmail.com", recipientsOne));
             mails.add(new Mail("title2", "text2", "second@gmail.com", recipientsTwo));
@@ -70,7 +71,6 @@ public class MainAcceptor extends Application {
             e.printStackTrace();
         }
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
         launch(args);
     }
 }

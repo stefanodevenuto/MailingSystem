@@ -40,7 +40,6 @@
                       <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
                     </rowConstraints>
                      <children>
-                        <Button fx:id="sendBtn" onAction="#handleSendButton" mnemonicParsing="false" visible="false" prefHeight="32.0" prefWidth="167.0" text="Send" />
                         <Button fx:id="forwardBtn" onAction="#handleForwardButton" mnemonicParsing="false" prefHeight="32.0" prefWidth="167.0" text="Forward" GridPane.columnIndex="2" />
                         <Button fx:id="replyBtn" mnemonicParsing="false" onAction="#handleReplyButton" prefHeight="32.0" prefWidth="167.0" text="Reply" />
                         <Button fx:id="deleteBtn" mnemonicParsing="false" prefHeight="32.0" prefWidth="167.0" text="Delete" GridPane.columnIndex="3">
@@ -48,7 +47,7 @@
                               <Insets right="10.0" />
                            </GridPane.margin>
                         </Button>
-                        <Button fx:id="replyAllBtn" mnemonicParsing="false" prefHeight="32.0" prefWidth="167.0" text="Reply All" GridPane.columnIndex="1" />
+                        <Button fx:id="replyAllBtn" onAction="#handleReplyAllButton" mnemonicParsing="false" prefHeight="32.0" prefWidth="167.0" text="Reply All" GridPane.columnIndex="1" />
                      </children>
                   </GridPane>
                   <TextField fx:id="currentSender" maxWidth="1.7976931348623157E308" GridPane.columnIndex="1" GridPane.rowIndex="1">
