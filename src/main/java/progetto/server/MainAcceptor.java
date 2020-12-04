@@ -33,7 +33,7 @@ public class MainAcceptor extends Application {
 
     public static void main(String[] args) {
         // TODO: da rimuovere, solo per provare
-        try {
+        /*try {
 
             Writer writer = Files.newBufferedWriter(Paths.get("C:\\Users\\stefa\\Desktop\\first@gmail.com.csv"));
 
@@ -69,7 +69,7 @@ public class MainAcceptor extends Application {
 
         } catch(Exception e) {
             e.printStackTrace();
-        }
+        }*/
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         launch(args);
     }

@@ -1,5 +1,6 @@
 package progetto.server;
 
+import javafx.application.Platform;
 import javafx.fxml.Initializable;
 import javafx.scene.control.ListCell;
 import progetto.common.Mail;
@@ -147,9 +148,22 @@ public class ServerLogController implements Initializable {
                         break;
                     }
 
+                    case Request.DELETE:{
+                        System.out.println("Delete mail...: " + r.getBody());
+                        Runnable deleteMail = new DeleteMail(toClient, r.getAddress(), r.getBody());
+                        executorService.execute(deleteMail);
+                        break;
+                    }
+
                 }
 
-                logListView.getItems().add(r);
+                Platform.runLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        logListView.getItems().add(r);
+                    }
+                });
+
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -216,5 +230,34 @@ public class ServerLogController implements Initializable {
         }
     }
 
+    private class DeleteMail implements Runnable {
+        private Mail mail;
+        private ObjectOutputStream toClient;
+        private String address;
+
+        private DeleteMail(ObjectOutputStream toClient, String address, Mail mail) {
+            this.toClient = toClient;
+            this.address = address;
+            this.mail = mail;
+        }
+
+        @Override
+        public void run() {
+            try {
+                System.out.println("Deleting");
+                mailboxes.deleteMailboxMail(address, mail.getID());
+
+                toClient.writeObject(new Response(Response.OK));
+            } catch (NoSuchElementException noSuchElementException){
+                try {
+                    toClient.writeObject(new Response(Response.ADDRESS_NOT_FOUND));
+                } catch (Exception e){
+                    e.printStackTrace();
+                }
+            } catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+    }
 
 }

@@ -7,6 +7,8 @@ import javafx.fxml.FXML;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.Pane;
 import progetto.common.Mail;
 import progetto.common.Request;
 import progetto.common.Response;
@@ -16,9 +18,12 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 
 public class NewMailController {
     private Mailbox mailbox;
+    private HashMap<String, Pane> screenMap;
+    private BorderPane root;
 
     @FXML
     private TextField currentTitle;
@@ -48,6 +53,9 @@ public class NewMailController {
 
                     if(o != null && o instanceof Response){
                         System.out.println(((Response)o).getCode());
+                        // TODO: refresh della lista di mail
+
+
                     }
                 } finally {
                     toServer.close();
@@ -64,13 +72,15 @@ public class NewMailController {
         }
     }
 
-    public void initModel(Mailbox mailbox) {
+    public void initController(Mailbox mailbox, HashMap<String, Pane> screenMap, BorderPane root) {
         // ensure model is only set once:
         if (this.mailbox != null) {
             throw new IllegalStateException("Model can only be initialized once");
         }
 
         this.mailbox = mailbox;
+        this.screenMap = screenMap;
+        this.root = root;
 
         //mailbox.setCurrentMail(new Mail());
 
@@ -92,12 +102,12 @@ public class NewMailController {
             @Override
             public void changed(ObservableValue observable, Mail oldMail, Mail newMail) {
 
-                if(newMail.getRecipients().isEmpty()){
+                if(newMail != null && newMail.getRecipients().isEmpty()){
                     System.out.println("Arrivo da una Forward/New");
                     currentRecipientsTextField.setVisible(true);
                     currentRecipientsListView.setVisible(false);
                 } else {
-                    System.out.println("Arrivo da una Reply/Reply All: " + newMail.getRecipients());
+                    //System.out.println("Arrivo da una Reply/Reply All: " + newMail.getRecipients());
                     currentRecipientsTextField.setVisible(false);
                     currentRecipientsListView.setVisible(true);
                 }

@@ -1,5 +1,6 @@
 package progetto.common;
 
+import com.opencsv.bean.CsvBindByPosition;
 import com.opencsv.bean.CsvCustomBindByPosition;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -16,24 +17,24 @@ import java.util.List;
 public class Mail implements Externalizable  {
     //private UUID ID;
     //
-
-    @CsvCustomBindByPosition(position = 0, converter = StringPropertyConverter.class)
-    private StringProperty title = new SimpleStringProperty();
+    @CsvBindByPosition(position = 0)
+    private int ID;
 
     @CsvCustomBindByPosition(position = 1, converter = StringPropertyConverter.class)
-    private StringProperty text = new SimpleStringProperty();
+    private StringProperty title = new SimpleStringProperty();
 
     @CsvCustomBindByPosition(position = 2, converter = StringPropertyConverter.class)
+    private StringProperty text = new SimpleStringProperty();
+
+    @CsvCustomBindByPosition(position = 3, converter = StringPropertyConverter.class)
     private StringProperty sender =  new SimpleStringProperty();
 
-    @CsvCustomBindByPosition(position = 3, converter = ObservableListConverter.class)
+    @CsvCustomBindByPosition(position = 4, converter = ObservableListConverter.class)
     private ObservableList<String> recipients = FXCollections.observableArrayList(new ArrayList<>());
 
     public Mail() {}
 
     public Mail(String title, String text, String sender, List<String> recipients) {
-        //ID = UUID.randomUUID();
-
         setTitle(title);
         setText(text);
         setSender(sender);
@@ -78,6 +79,14 @@ public class Mail implements Externalizable  {
     }
     public List<String> getRecipients() {
         return new ArrayList<>(recipientsProperty());
+    }
+
+    public int getID() {
+        return ID;
+    }
+
+    public void setID(int ID) {
+        this.ID = ID;
     }
 
     @Override

@@ -8,6 +8,9 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class Mailbox {
 
     private SimpleStringProperty address = new SimpleStringProperty();
@@ -29,6 +32,9 @@ public class Mailbox {
     }
     public void setCurrentMailList(ObservableList<Mail> current) {
         currentMailList = current;
+    }
+    public List<Mail> getCurrentMailList() {
+        return new ArrayList<>(currentMailListProperty());
     }
 
     public ObjectProperty<Mail> currentMailProperty() {

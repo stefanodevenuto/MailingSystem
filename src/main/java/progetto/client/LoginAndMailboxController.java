@@ -4,11 +4,10 @@ import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.control.*;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
 import progetto.common.Mail;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import progetto.common.Request;
@@ -136,7 +135,7 @@ public class LoginAndMailboxController {
         mailListView.setItems(mailbox.currentMailListProperty());
 
         // Show the title of the Mail for each one in the ObservableList
-        mailListView.setCellFactory(lv -> new ListCell<Mail>() {
+        mailListView.setCellFactory(lv -> new ListCell<>() {
             @Override
             public void updateItem(Mail mail, boolean empty) {
                 super.updateItem(mail, empty);
@@ -149,16 +148,12 @@ public class LoginAndMailboxController {
             }
         });
 
-        mailListView.getSelectionModel().selectedItemProperty().addListener(new ChangeListener() {
-            @Override
-            public void changed(ObservableValue observable, Object oldValue, Object newValue) {
-                Mail a = (Mail) newValue;
-                mailbox.setCurrentMail(a);
-
-                //screenMap.get("singleMail").setVisible(true);
-                root.setRight(screenMap.get("singleMail"));
-            }
-        });
+        /*mailListView.getSelectionModel().selectedItemProperty().addListener((observable, oldMail, newMail) -> {
+            mailbox.setCurrentMail(newMail);
+            //screenMap.get("singleMail").setVisible(true);
+            root.setRight(screenMap.get("singleMail"));
+            System.out.println("Clicked");
+        });*/
 
         // Create a Runnable with a call to Platform.runLater
         Runnable getCurrentMailList = new GetCurrentMailList(givenMailAddress, mailListView);
@@ -166,7 +161,14 @@ public class LoginAndMailboxController {
 
     }
 
-    public static boolean validate(String email) {
+    @FXML
+    public void handleMouseClicked(MouseEvent arg0) {
+        System.out.println("Clicked");
+        mailbox.setCurrentMail(mailListView.getSelectionModel().getSelectedItem());
+        root.setRight(screenMap.get("singleMail"));
+    }
+
+    private static boolean validate(String email) {
         Matcher matcher = EMAIL_ADDRESS_REGEX.matcher(email);
         return matcher.find();
     }

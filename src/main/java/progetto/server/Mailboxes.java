@@ -6,8 +6,10 @@ import javafx.collections.ObservableList;
 import progetto.common.Mail;
 import progetto.common.Request;
 
+import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
@@ -61,6 +63,15 @@ public class Mailboxes {
         m.updateMailList(mail);
     }
 
+    public void deleteMailboxMail(String address, int mailID) throws NoSuchElementException{
+        Mailbox m = mailboxList.get(address);
+        if(m == null){
+            System.out.println("Update: UTENTE NON ESISTE");
+            throw new NoSuchElementException();
+        }
+        m.deleteMail(mailID);
+    }
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private class Mailbox {
@@ -71,9 +82,19 @@ public class Mailboxes {
         private Lock writeLock = readWriteLock.writeLock();
 
         private String address;
+        private AtomicInteger emailCounter = new AtomicInteger();
 
         private Mailbox(String address) {
             this.address = address;
+            try {
+                emailCounter.set((int) Files.lines(Paths.get("C:\\Users\\stefa\\Desktop\\" + address + ".csv"),
+                        Charset.defaultCharset())
+                        .count());
+            } catch (IOException e){
+                System.out.println("IOException");
+                emailCounter.set(0);
+            }
+
         }
 
         private List<Mail> getMailList(boolean mode) {
@@ -82,9 +103,8 @@ public class Mailboxes {
             try {
                 Reader reader = Files.newBufferedReader(Paths.get("C:\\Users\\stefa\\Desktop\\" + address + ".csv"));
                 CsvToBean<Mail> csvToBean;
-                /*
-                 * This filter ignores empty lines from the input
-                 */
+
+                // Ignores empty lines from the input
                 CsvToBeanFilter ignoreEmptyLines = strings -> {
                     for (String one : strings) {
                         if (one != null && one.length() > 0) {
@@ -102,9 +122,6 @@ public class Mailboxes {
                             .withSkipLines(SKIP_LINES.get())
                             .build();
                 }else{
-                    /*
-                     * This filter ignores empty lines from the input
-                     */
                     csvToBean = new CsvToBeanBuilder<Mail>(reader)
                             .withType(Mail.class)
                             .withIgnoreLeadingWhiteSpace(true)
@@ -116,9 +133,6 @@ public class Mailboxes {
                 SKIP_LINES.getAndAdd(mailList.size());
                 reader.close();
 
-                // TODO: cancellazione in posizione < SKIP_LINES ==>    SKIP_LINES--;
-                //       altrimenti                              ==>    nulla
-
             }catch (Exception e) {
                 return mailList;
             } finally {
@@ -128,6 +142,7 @@ public class Mailboxes {
         }
 
         private void updateMailList(Mail m) {
+            m.setID(emailCounter.getAndIncrement());
             writeLock.lock();
             try {
                 Writer writer = Files.newBufferedWriter(
@@ -147,6 +162,65 @@ public class Mailboxes {
             } finally {
                 writeLock.unlock();
             }
+        }
+
+        private void deleteMail(int mailID){
+            writeLock.lock();
+            List<Mail> tempMailList = new ArrayList<>();
+            try(Reader reader = Files.newBufferedReader(Paths.get("C:\\Users\\stefa\\Desktop\\" + address + ".csv"));
+                Writer writer = Files.newBufferedWriter(
+                        Paths.get("C:\\Users\\stefa\\Desktop\\" + address + ".csv"),
+                        StandardOpenOption.CREATE,
+                        StandardOpenOption.APPEND
+                )) {
+
+
+                // Ignores empty lines from the input
+                CsvToBeanFilter ignoreEmptyLines = strings -> {
+                    for (String one : strings) {
+                        if (one != null && one.length() > 0) {
+                            return true;
+                        }
+                    }
+                    return false;
+                };
+
+
+                CsvToBean<Mail> csvToBean = new CsvToBeanBuilder<Mail>(reader)
+                        .withType(Mail.class)
+                        .withIgnoreLeadingWhiteSpace(true)
+                        .withFilter(ignoreEmptyLines)
+                        .build();
+
+                Iterator<Mail> csvMailIterator = csvToBean.iterator();
+
+                int deletedIndex = -1;
+                while(csvMailIterator.hasNext()){
+                    deletedIndex++;
+                    Mail m = csvMailIterator.next();
+                    if(m.getID() != mailID){
+                        tempMailList.add(m);
+                        break;
+                    }
+                }
+
+                StatefulBeanToCsv<Mail> beanToCsv = new StatefulBeanToCsvBuilder<Mail>(writer).build();
+
+                beanToCsv.write(tempMailList);
+
+                if(deletedIndex < SKIP_LINES.intValue()){
+                    SKIP_LINES.decrementAndGet();
+                }
+
+                // TODO: cancellazione in posizione < SKIP_LINES ==>    SKIP_LINES--;
+                //       altrimenti                              ==>    nulla
+
+            }catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                writeLock.unlock();
+            }
+
         }
     }
 }

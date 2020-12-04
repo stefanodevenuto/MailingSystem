@@ -1,5 +1,6 @@
 package progetto.client;
 
+import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -69,6 +70,50 @@ public class SingleMailController {
 
     @FXML
     private Button sendBtn;
+
+    @FXML
+    public void handleDeleteButton(ActionEvent actionEvent) {
+        try {
+            Socket server = new Socket("localhost", 4444);
+
+            try {
+                ObjectOutputStream toServer = new ObjectOutputStream(server.getOutputStream());
+                ObjectInputStream fromServer = new ObjectInputStream(server.getInputStream());
+                try{
+                    toServer.writeObject(new Request(Request.DELETE, mailbox.getAddress(), mailbox.getCurrentMail()));
+
+                    Object o = fromServer.readObject();
+
+                    if(o != null && o instanceof Response){
+                        if(((Response)o).getCode() == Response.OK){
+                            Platform.runLater(() -> {
+                                /*List<Mail> a = mailbox.getCurrentMailList();
+                                a.remove(mailbox.getCurrentMail());
+
+                                for(Mail b : a){
+                                    System.out.println(b.getTitle());
+                                }
+
+                                mailbox.setCurrentMailList(FXCollections.observableArrayList(a));*/
+                                mailbox.currentMailListProperty().remove(mailbox.getCurrentMail());
+                            });
+                        }
+                    }
+
+                } finally {
+                    toServer.close();
+                    fromServer.close();
+                }
+
+            } finally {
+                System.out.println("Chiuso");
+                server.close();
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     @FXML
     public void handleReplyButton(ActionEvent actionEvent) {

@@ -49,7 +49,7 @@ public class Main extends Application {
         Mailbox mailbox = new Mailbox();
         loginAndMailboxController.initController(mailbox, screenMap, root, executorService);
         singleMailController.initController(mailbox, screenMap, root);
-        newMailController.initModel(mailbox);
+        newMailController.initController(mailbox, screenMap, root);
 
         primaryStage.setTitle("Client");
         primaryStage.setScene(scene);
