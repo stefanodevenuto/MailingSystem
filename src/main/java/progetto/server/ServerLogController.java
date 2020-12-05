@@ -127,7 +127,7 @@ public class ServerLogController implements Initializable {
                 Object request = fromClient.readObject();
 
                 if(!(request != null && request instanceof Request)) {
-                    System.out.println("Server: BAD REQUEST"); // TODO: creare classi custom per le eccezioni
+                    System.out.println("Server: BAD REQUEST");
                 }
 
                 Request r = (Request) request;
@@ -187,7 +187,14 @@ public class ServerLogController implements Initializable {
                 boolean type = false;
                 if(requestType == Request.UPDATE_MAILLIST)
                     type = true;
-                toClient.writeObject(new Response(Response.OK, mailboxes.getMailboxMailist(address, type)));
+
+                List<Mail> a = mailboxes.getMailboxMailist(address, type);
+
+                for(Mail m : a){
+                    System.out.println("Server controller ID: " + m.getID());
+                }
+
+                toClient.writeObject(new Response(Response.OK, a));
             } catch(NoSuchElementException noSuchElementException) {
                 try {
                     toClient.writeObject(new Response(Response.ADDRESS_NOT_FOUND));
@@ -244,7 +251,7 @@ public class ServerLogController implements Initializable {
         @Override
         public void run() {
             try {
-                System.out.println("Deleting");
+                System.out.println("Deleting: " + mail.getID());
                 mailboxes.deleteMailboxMail(address, mail.getID());
 
                 toClient.writeObject(new Response(Response.OK));

@@ -114,6 +114,7 @@ public class NewMailController {
 
                 if (oldMail != null) {
                     currentTitle.textProperty().unbindBidirectional(oldMail.titleProperty());
+                    currentRecipientsTextField.textProperty().unbindBidirectional(oldMail.recipientsProperty());
                     currentRecipientsTextField.focusedProperty().removeListener(recipientsListener);
                     currentRecipientsListView.setItems(null);
                     currentText.textProperty().unbindBidirectional(oldMail.textProperty());
@@ -126,10 +127,15 @@ public class NewMailController {
 
                 } else {
                     currentTitle.textProperty().bindBidirectional(newMail.titleProperty());
+                    currentRecipientsTextField.setText(""); // Capire bene perchè con questo risolvo il bug New into Forward
                     currentRecipientsTextField.focusedProperty().addListener(recipientsListener);
                     currentRecipientsListView.setItems(newMail.recipientsProperty());
                     currentText.textProperty().bindBidirectional(newMail.textProperty());
+
+                    System.out.println("LA NUOVA MAIL: " + mailbox.getCurrentMail());
                 }
+
+                System.out.println("CAMBIATO DA NEW: " + mailbox.getCurrentMail());
             }
         });
     }

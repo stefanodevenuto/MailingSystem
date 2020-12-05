@@ -3,6 +3,9 @@ package progetto.client;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.concurrent.Service;
+import javafx.concurrent.Task;
+import javafx.concurrent.Worker;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
@@ -15,11 +18,14 @@ import progetto.common.Response;
 
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.ConnectException;
 import java.net.Socket;
 import java.util.HashMap;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -31,14 +37,20 @@ public class LoginAndMailboxController {
     private HashMap<String, Pane> screenMap;
     private BorderPane root;
     private ScheduledExecutorService executorService;
+    private ScheduledFuture<?> timedGetMailList;
+
     public static final Pattern EMAIL_ADDRESS_REGEX =
             Pattern.compile("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,6}$", Pattern.CASE_INSENSITIVE);
+    public static final int MAX_TRIES = 10;
 
     @FXML
     private TextField insertedMail;
 
     @FXML
     private ListView<Mail> mailListView;
+
+    @FXML
+    private Button newBtn;
 
     public void initController(Mailbox mailbox, HashMap<String, Pane> screenMap, BorderPane root, ScheduledExecutorService executorService) {
         // ensure model is only set once
@@ -50,6 +62,7 @@ public class LoginAndMailboxController {
         this.screenMap = screenMap;
         this.root = root;
         this.executorService = executorService;
+        timedGetMailList = null;
     }
 
     @FXML
@@ -65,8 +78,9 @@ public class LoginAndMailboxController {
     public void handleLoginButton(ActionEvent actionEvent) {
 
         String givenMailAddress = insertedMail.getText();
-        if(!executorService.isShutdown()){
+        if(timedGetMailList != null){
             // TODO: gestire quando premo login una seconda volta l'interruzione del primo Runnable ogni 3 sec.
+            timedGetMailList.cancel(true);
         }
 
         if(!validate(givenMailAddress)) {
@@ -77,59 +91,79 @@ public class LoginAndMailboxController {
             alert.showAndWait();
             return;
         }
-
-        try {
-            Socket server = new Socket("localhost", 4444);
-
+        boolean notConnected = true;
+        int tries = 0;
+        while(notConnected){
             try {
-                ObjectOutputStream toServer = new ObjectOutputStream(server.getOutputStream());
-                ObjectInputStream fromServer = new ObjectInputStream(server.getInputStream());
-
+                Socket server = new Socket("localhost", 4444);
+                notConnected = false;
                 try {
-                    toServer.writeObject(new Request(Request.GET_FULL_MAILLIST, givenMailAddress));
-                    System.out.println("Requested full maillist");
-                    Object o = fromServer.readObject();
-
-                    List<Mail> m;
+                    ObjectOutputStream toServer = new ObjectOutputStream(server.getOutputStream());
+                    ObjectInputStream fromServer = new ObjectInputStream(server.getInputStream());
 
                     try {
-                        m = handleResponse(o);
-                    } catch (NoSuchElementException noSuchElementException){
-                        Alert alert = new Alert(Alert.AlertType.WARNING);
-                        alert.setTitle("Wrong email");
-                        alert.setContentText("The inserted email doesn't exist!");
+                        toServer.writeObject(new Request(Request.GET_FULL_MAILLIST, givenMailAddress));
+                        System.out.println("Requested full maillist");
+                        Object o = fromServer.readObject();
 
-                        alert.showAndWait();
-                        return;
-                    } catch (InternalError internalError){
-                        Alert alert = new Alert(Alert.AlertType.ERROR);
-                        alert.setTitle("Internal error");
-                        alert.setContentText("Internal error: Try again later!");
+                        List<Mail> m;
 
-                        alert.showAndWait();
-                        return;
+                        try {
+                            m = handleResponse(o);
+                        } catch (NoSuchElementException noSuchElementException){
+                            Alert alert = new Alert(Alert.AlertType.WARNING);
+                            alert.setTitle("Wrong email");
+                            alert.setHeaderText(null);
+                            alert.setContentText("The inserted email doesn't exist!");
+
+                            alert.showAndWait();
+                            return;
+                        } catch (InternalError internalError){
+                            Alert alert = new Alert(Alert.AlertType.ERROR);
+                            alert.setTitle("Internal error");
+                            alert.setHeaderText(null);
+                            alert.setContentText("Internal error: Try again later!");
+
+                            alert.showAndWait();
+                            return;
+                        }
+
+                        for(Mail a : m){
+                            System.out.println("ID: " + a.getID());
+                        }
+
+
+                        // Retrieve the original ObservableList type
+                        ObservableList<Mail> mailList = FXCollections.observableArrayList(m);
+
+                        mailbox.setAddress(givenMailAddress);
+                        mailbox.setCurrentMailList(mailList);
+                    } finally {
+                        toServer.close();
+                        fromServer.close();
                     }
 
 
-                    // Retrieve the original ObservableList type
-                    ObservableList<Mail> mailList = FXCollections.observableArrayList(m);
-
-                    mailbox.setAddress(givenMailAddress);
-                    mailbox.setCurrentMailList(mailList);
                 } finally {
-                    toServer.close();
-                    fromServer.close();
+                    System.out.println("Chiuso");
+                    server.close();
                 }
 
+            } catch (ConnectException e) {
+                tries++;
+                if(tries == MAX_TRIES){
+                    Alert alert = new Alert(Alert.AlertType.ERROR);
+                    alert.setTitle("Internal error");
+                    alert.setContentText("The server is currently down: try again later!");
 
-            } finally {
-                System.out.println("Chiuso");
-                server.close();
+                    alert.showAndWait();
+                    return;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-
-        } catch (Exception e) {
-            e.printStackTrace();
         }
+
 
         // Set the entire MailList (ObservableList<Mail>) to the ListView
         mailListView.setItems(mailbox.currentMailListProperty());
@@ -148,6 +182,8 @@ public class LoginAndMailboxController {
             }
         });
 
+        newBtn.setDisable(false);
+
         /*mailListView.getSelectionModel().selectedItemProperty().addListener((observable, oldMail, newMail) -> {
             mailbox.setCurrentMail(newMail);
             //screenMap.get("singleMail").setVisible(true);
@@ -157,15 +193,18 @@ public class LoginAndMailboxController {
 
         // Create a Runnable with a call to Platform.runLater
         Runnable getCurrentMailList = new GetCurrentMailList(givenMailAddress, mailListView);
-        executorService.scheduleAtFixedRate(getCurrentMailList, 5, 5, TimeUnit.SECONDS);
+        timedGetMailList = executorService.scheduleAtFixedRate(getCurrentMailList, 5, 5, TimeUnit.SECONDS);
 
     }
 
     @FXML
     public void handleMouseClicked(MouseEvent arg0) {
-        System.out.println("Clicked");
-        mailbox.setCurrentMail(mailListView.getSelectionModel().getSelectedItem());
-        root.setRight(screenMap.get("singleMail"));
+        Mail m = mailListView.getSelectionModel().getSelectedItem();
+        if(m != null){
+            System.out.println("Clicked: " + m.getID() + " " + m.toString());
+            mailbox.setCurrentMail(m);
+            root.setRight(screenMap.get("singleMail"));
+        }
     }
 
     private static boolean validate(String email) {
@@ -187,46 +226,67 @@ public class LoginAndMailboxController {
             Platform.runLater(new Runnable() {
                 @Override
                 public void run() {
-                    try {
-                        Socket server = new Socket("localhost", 4444);
-
+                    boolean notConnected = true;
+                    int tries = 0;
+                    while(notConnected) {
                         try {
-                            ObjectOutputStream toServer = new ObjectOutputStream(server.getOutputStream());
-                            ObjectInputStream fromServer = new ObjectInputStream(server.getInputStream());
-
-                            toServer.writeObject(new Request(Request.UPDATE_MAILLIST, givenMailAddress));
-
-                            Object o = fromServer.readObject();
-
-                            List<Mail> m;
-
+                            Socket server = new Socket("localhost", 4444);
+                            notConnected = false;
                             try {
-                                m = handleResponse(o);
-                            } catch (NoSuchElementException noSuchElementException){
-                                Alert alert = new Alert(Alert.AlertType.WARNING);
-                                alert.setTitle("Wrong email");
-                                alert.setContentText("The inserted email doesn't exist!");
+                                ObjectOutputStream toServer = new ObjectOutputStream(server.getOutputStream());
+                                ObjectInputStream fromServer = new ObjectInputStream(server.getInputStream());
 
-                                alert.showAndWait();
-                                return;
-                            } catch (InternalError internalError){
+                                toServer.writeObject(new Request(Request.UPDATE_MAILLIST, givenMailAddress));
+
+                                Object o = fromServer.readObject();
+
+                                List<Mail> m;
+
+                                try {
+                                    m = handleResponse(o);
+                                } catch (NoSuchElementException noSuchElementException) {
+                                    Alert alert = new Alert(Alert.AlertType.WARNING);
+                                    alert.setTitle("Wrong email");
+                                    alert.setHeaderText(null);
+                                    alert.setContentText("The inserted email doesn't exist!");
+
+                                    alert.showAndWait();
+                                    return;
+                                } catch (InternalError internalError) {
+                                    Alert alert = new Alert(Alert.AlertType.ERROR);
+                                    alert.setTitle("Internal error");
+                                    alert.setHeaderText(null);
+                                    alert.setContentText("Internal error: Try again later!");
+
+                                    alert.showAndWait();
+                                    return;
+                                }
+
+                                ObservableList<Mail> mailList = FXCollections.observableArrayList(m);
+
+                                mailListView.getItems().addAll(mailList);
+                            } finally {
+                                //System.out.println("Chiuso update mailList");
+                                server.close();
+                            }
+                        } catch (ConnectException e) {
+                            tries++;
+                            if (tries == MAX_TRIES) {
                                 Alert alert = new Alert(Alert.AlertType.ERROR);
                                 alert.setTitle("Internal error");
-                                alert.setContentText("Internal error: Try again later!");
+                                alert.setHeaderText(null);
+                                alert.setContentText("The server is currently down: try again later!");
 
                                 alert.showAndWait();
                                 return;
                             }
 
-                            ObservableList<Mail> mailList = FXCollections.observableArrayList(m);
+                            if(tries == 1){
 
-                            mailListView.getItems().addAll(mailList);
-                        } finally {
-                            //System.out.println("Chiuso update mailList");
-                            server.close();
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
-                    } catch (Exception e){
-                        e.printStackTrace();
                     }
                 }
             });
@@ -239,6 +299,11 @@ public class LoginAndMailboxController {
         //System.out.println(r.getCode());
         switch (r.getCode()){
             case Response.OK:{
+                List<Mail> a = r.getBody();
+                for(Mail m : a){
+                    System.out.println("HandleResponse ID: " + m.getID());
+                }
+
                 return r.getBody();
             }
 
@@ -250,4 +315,87 @@ public class LoginAndMailboxController {
                 throw new InternalError();
         }
     }
+
+    /*
+    private class Ciao extends Service<List<Mail>> {
+        private String givenMailAddress;
+
+        private Ciao(String givenMailAddress) {
+            this.givenMailAddress = givenMailAddress;
+        }
+
+
+        @Override
+        protected Task<List<Mail>> createTask() {
+            return new Task<>() {
+                @Override
+                protected List<Mail> call() throws Exception {
+                    boolean notConnected = true;
+                    int tries = 0;
+                    while(notConnected) {
+                        try {
+                            Socket server = new Socket("localhost", 4444);
+                            notConnected = false;
+                            try {
+                                ObjectOutputStream toServer = new ObjectOutputStream(server.getOutputStream());
+                                ObjectInputStream fromServer = new ObjectInputStream(server.getInputStream());
+
+                                toServer.writeObject(new Request(Request.UPDATE_MAILLIST, givenMailAddress));
+
+                                Object o = fromServer.readObject();
+
+                                List<Mail> m;
+
+                                try {
+                                    m = handleResponse(o);
+                                } catch (NoSuchElementException noSuchElementException) {
+                                    Alert alert = new Alert(Alert.AlertType.WARNING);
+                                    alert.setTitle("Wrong email");
+                                    alert.setHeaderText(null);
+                                    alert.setContentText("The inserted email doesn't exist!");
+
+                                    alert.showAndWait();
+                                    return;
+                                } catch (InternalError internalError) {
+                                    Alert alert = new Alert(Alert.AlertType.ERROR);
+                                    alert.setTitle("Internal error");
+                                    alert.setHeaderText(null);
+                                    alert.setContentText("Internal error: Try again later!");
+
+                                    alert.showAndWait();
+                                    return;
+                                }
+
+                                ObservableList<Mail> mailList = FXCollections.observableArrayList(m);
+
+                                mailListView.getItems().addAll(mailList);
+                            } finally {
+                                //System.out.println("Chiuso update mailList");
+                                server.close();
+                            }
+                        } catch (ConnectException e) {
+                            tries++;
+                            if (tries == MAX_TRIES) {
+                                Alert alert = new Alert(Alert.AlertType.ERROR);
+                                alert.setTitle("Internal error");
+                                alert.setHeaderText(null);
+                                alert.setContentText("The server is currently down: try again later!");
+
+                                alert.showAndWait();
+                                return;
+                            }
+
+                            if(tries == 1){
+
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    return
+                }
+            };
+        }
+    }*/
 }

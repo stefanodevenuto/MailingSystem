@@ -15,8 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Mail implements Externalizable  {
-    //private UUID ID;
-    //
+
     @CsvBindByPosition(position = 0)
     private int ID;
 
@@ -91,6 +90,7 @@ public class Mail implements Externalizable  {
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeInt(ID);
         out.writeObject(getTitle());
         out.writeObject(getText());
         out.writeObject(getSender());
@@ -99,6 +99,7 @@ public class Mail implements Externalizable  {
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        setID(in.readInt());
         setTitle((String) in.readObject());
         setText((String) in.readObject());
         setSender((String) in.readObject());

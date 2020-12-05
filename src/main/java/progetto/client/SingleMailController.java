@@ -152,12 +152,12 @@ public class SingleMailController {
 
     @FXML
     public void handleForwardButton(ActionEvent actionEvent){
-        Mail newMail = new Mail();
+        Mail m = new Mail();
 
-        newMail.setText(mailbox.getCurrentMail().getText());
-        //newMail.setRecipients(null);
+        m.setText(mailbox.getCurrentMail().getText());
+        //newMail.setRecipients(new ArrayList<>());
 
-        mailbox.setCurrentMail(newMail);
+        mailbox.setCurrentMail(m);
 
         root.setRight(screenMap.get("newMail"));
     }

@@ -26,7 +26,7 @@
             <RowConstraints maxHeight="1.7976931348623157E308" minHeight="10.0" prefHeight="45.0" vgrow="SOMETIMES" />
         </rowConstraints>
          <children>
-            <ListView fx:id="mailListView" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="200.0" prefWidth="262.0" GridPane.hgrow="ALWAYS" GridPane.rowIndex="1" />
+            <ListView fx:id="mailListView" onMouseClicked="#handleMouseClicked" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="200.0" prefWidth="262.0" GridPane.hgrow="ALWAYS" GridPane.rowIndex="1" />
             <GridPane prefWidth="115.0">
               <columnConstraints>
                 <ColumnConstraints hgrow="SOMETIMES" maxWidth="-Infinity" prefWidth="300.0" />
@@ -48,7 +48,7 @@
                   </Button>
                </children>
             </GridPane>
-            <Button onAction="#handleNewButton" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" mnemonicParsing="false" prefWidth="189.0" text="New" GridPane.rowIndex="2" />
+            <Button fx:id="newBtn" disable="true" onAction="#handleNewButton" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" mnemonicParsing="false" prefWidth="189.0" text="New" GridPane.rowIndex="2" />
          </children>
       </GridPane>
    </children>

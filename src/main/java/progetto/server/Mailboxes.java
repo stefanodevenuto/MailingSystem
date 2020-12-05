@@ -130,6 +130,7 @@ public class Mailboxes {
                 }
 
                 mailList = csvToBean.parse();
+
                 SKIP_LINES.getAndAdd(mailList.size());
                 reader.close();
 
@@ -167,13 +168,8 @@ public class Mailboxes {
         private void deleteMail(int mailID){
             writeLock.lock();
             List<Mail> tempMailList = new ArrayList<>();
-            try(Reader reader = Files.newBufferedReader(Paths.get("C:\\Users\\stefa\\Desktop\\" + address + ".csv"));
-                Writer writer = Files.newBufferedWriter(
-                        Paths.get("C:\\Users\\stefa\\Desktop\\" + address + ".csv"),
-                        StandardOpenOption.CREATE,
-                        StandardOpenOption.APPEND
-                )) {
-
+            try {
+                Reader reader = Files.newBufferedReader(Paths.get("C:\\Users\\stefa\\Desktop\\" + address + ".csv"));
 
                 // Ignores empty lines from the input
                 CsvToBeanFilter ignoreEmptyLines = strings -> {
@@ -200,17 +196,26 @@ public class Mailboxes {
                     Mail m = csvMailIterator.next();
                     if(m.getID() != mailID){
                         tempMailList.add(m);
-                        break;
                     }
                 }
+
+                reader.close();
+
+                System.out.println(tempMailList);
+
+                Writer writer = Files.newBufferedWriter(Paths.get("C:\\Users\\stefa\\Desktop\\" + address + ".csv"));
 
                 StatefulBeanToCsv<Mail> beanToCsv = new StatefulBeanToCsvBuilder<Mail>(writer).build();
 
                 beanToCsv.write(tempMailList);
 
+                writer.close();
                 if(deletedIndex < SKIP_LINES.intValue()){
                     SKIP_LINES.decrementAndGet();
                 }
+
+                System.out.println("Current emailCounter after delete: " + emailCounter.get());
+                //emailCounter.decrementAndGet();
 
                 // TODO: cancellazione in posizione < SKIP_LINES ==>    SKIP_LINES--;
                 //       altrimenti                              ==>    nulla

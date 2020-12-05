@@ -48,7 +48,7 @@
                   </Button>
                </children>
             </GridPane>
-            <Button onAction="#handleNewButton" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" mnemonicParsing="false" prefWidth="189.0" text="New" GridPane.rowIndex="2" />
+            <Button fx:id="newBtn" disable="true" onAction="#handleNewButton" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" mnemonicParsing="false" prefWidth="189.0" text="New" GridPane.rowIndex="2" />
          </children>
       </GridPane>
    </children>
