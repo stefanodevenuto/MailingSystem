@@ -122,11 +122,14 @@ public class Mailboxes {
                             .withSkipLines(SKIP_LINES.get())
                             .build();
                 }else{
+                    SKIP_LINES.set(0); // To avoid the re-login update list view fail
                     csvToBean = new CsvToBeanBuilder<Mail>(reader)
                             .withType(Mail.class)
                             .withIgnoreLeadingWhiteSpace(true)
                             .withFilter(ignoreEmptyLines)
                             .build();
+
+
                 }
 
                 mailList = csvToBean.parse();

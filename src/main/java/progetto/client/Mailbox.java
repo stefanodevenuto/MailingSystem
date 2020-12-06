@@ -14,7 +14,7 @@ import java.util.List;
 public class Mailbox {
 
     private SimpleStringProperty address = new SimpleStringProperty();
-    private ObservableList<Mail> currentMailList = FXCollections.observableArrayList();
+    private ObservableList<Mail> currentMailList = FXCollections.observableArrayList(new ArrayList<>());
     private ObjectProperty<Mail> currentMail = new SimpleObjectProperty<>(null);
 
     public StringProperty addressProperty() {

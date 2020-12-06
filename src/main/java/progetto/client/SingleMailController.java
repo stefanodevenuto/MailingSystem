@@ -86,7 +86,7 @@ public class SingleMailController {
 
                     if(o != null && o instanceof Response){
                         if(((Response)o).getCode() == Response.OK){
-                            Platform.runLater(() -> {
+
                                 /*List<Mail> a = mailbox.getCurrentMailList();
                                 a.remove(mailbox.getCurrentMail());
 
@@ -96,7 +96,7 @@ public class SingleMailController {
 
                                 mailbox.setCurrentMailList(FXCollections.observableArrayList(a));*/
                                 mailbox.currentMailListProperty().remove(mailbox.getCurrentMail());
-                            });
+
                         }
                     }
 
