@@ -6,9 +6,7 @@ import javafx.collections.ObservableList;
 import progetto.common.Mail;
 import progetto.common.Request;
 
-import java.io.IOException;
-import java.io.Reader;
-import java.io.Writer;
+import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -18,10 +16,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Mailboxes {
     private Map<String, Mailbox> mailboxList;
-    private ObservableList<Request> logs = FXCollections.observableArrayList();
+    private ObservableList<Log> logs = FXCollections.observableArrayList();
 
     public Mailboxes() {
         mailboxList = new HashMap<>();
@@ -38,10 +38,10 @@ public class Mailboxes {
         return m;
     }
 
-    public ObservableList<Request> logsProperty() {
+    public ObservableList<Log> logsProperty() {
         return logs;
     }
-    public void setLogs(ObservableList<Request> current) {
+    public void setLogs(ObservableList<Log> current) {
         logs = current;
     }
 
@@ -75,8 +75,8 @@ public class Mailboxes {
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private class Mailbox {
-        private AtomicInteger SKIP_LINES = new AtomicInteger(0);
-
+        private AtomicInteger SKIP_LINES = new AtomicInteger(0); // TODO: valutare se assegnare questo alla singola connessione
+                                                                          // per evitare problemi sulla connessione dello stesso account contemporaneamente
         private ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
         private Lock readLock = readWriteLock.readLock();
         private Lock writeLock = readWriteLock.writeLock();
@@ -86,10 +86,21 @@ public class Mailboxes {
 
         private Mailbox(String address) {
             this.address = address;
-            try {
-                emailCounter.set((int) Files.lines(Paths.get("C:\\Users\\stefa\\Desktop\\" + address + ".csv"),
-                        Charset.defaultCharset())
-                        .count());
+            try(BufferedReader br = new BufferedReader(new FileReader("C:\\Users\\stefa\\Desktop\\" + address + ".csv"))) {
+
+                String lastLine = "";
+                String currentLine = "";
+
+                while ((currentLine = br.readLine()) != null) {
+                    //System.out.println(currentLine);
+                    lastLine = currentLine;
+                }
+
+                // Get the last ID by matching the first value inside double quotes
+                Matcher m = Pattern.compile("(?<=\")([^\"]+)(?=\")").matcher(lastLine);
+                m.find();
+
+                emailCounter.set(Integer.parseInt(m.group(1)) + 1);
             } catch (IOException e){
                 System.out.println("IOException");
                 emailCounter.set(0);

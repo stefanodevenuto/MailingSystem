@@ -4,11 +4,13 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.scene.control.Alert;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.RowConstraints;
 import progetto.common.Mail;
 import progetto.common.Request;
 import progetto.common.Response;
@@ -19,11 +21,14 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.NoSuchElementException;
 
 public class NewMailController {
     private Mailbox mailbox;
     private HashMap<String, Pane> screenMap;
     private BorderPane root;
+
+    private static final int LIST_CELL_HEIGHT = 24;
 
     @FXML
     private TextField currentTitle;
@@ -33,6 +38,9 @@ public class NewMailController {
 
     @FXML
     private ListView<String> currentRecipientsListView;
+
+    @FXML
+    private RowConstraints recipientsRow;
 
     @FXML
     private TextArea currentText;
@@ -52,10 +60,35 @@ public class NewMailController {
                     Object o = fromServer.readObject();
 
                     if(o != null && o instanceof Response){
-                        System.out.println(((Response)o).getCode());
+                        //System.out.println(((Response)o).getCode());
                         // TODO: refresh della lista di mail
+                        Response r = (Response) o;
+                        if(r.getCode() == Response.OK){
+                            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                            alert.setTitle("Done");
+                            alert.setHeaderText(null);
+                            alert.setContentText("Mail sent successfully!");
 
+                            alert.showAndWait();
 
+                        }else if(r.getCode() == Response.ADDRESS_NOT_FOUND){
+                            Alert alert = new Alert(Alert.AlertType.WARNING);
+                            alert.setTitle("Wrong email");
+                            alert.setHeaderText(null);
+                            alert.setContentText("The inserted mail address "+ r.getError() + " doesn't exist!\n" +
+                                                 "The email was sent only to addresses before " + r.getError());
+
+                            alert.showAndWait();
+                            return;
+                        }else {
+                            Alert alert = new Alert(Alert.AlertType.ERROR);
+                            alert.setTitle("Internal error");
+                            alert.setHeaderText(null);
+                            alert.setContentText("Internal error: Try again later!");
+
+                            alert.showAndWait();
+                            return;
+                        }
                     }
                 } finally {
                     toServer.close();
@@ -71,6 +104,7 @@ public class NewMailController {
             e.printStackTrace();
         }
     }
+
 
     public void initController(Mailbox mailbox, HashMap<String, Pane> screenMap, BorderPane root) {
         // ensure model is only set once:
@@ -108,6 +142,11 @@ public class NewMailController {
                     currentRecipientsListView.setVisible(false);
                 } else {
                     //System.out.println("Arrivo da una Reply/Reply All: " + newMail.getRecipients());
+                    currentRecipientsListView.setMinHeight(newMail.recipientsProperty().size() * LIST_CELL_HEIGHT);
+                    currentRecipientsListView.setPrefHeight(newMail.recipientsProperty().size() * LIST_CELL_HEIGHT);
+                    recipientsRow.setMinHeight(newMail.recipientsProperty().size() * LIST_CELL_HEIGHT);
+                    recipientsRow.setPrefHeight(newMail.recipientsProperty().size() * LIST_CELL_HEIGHT);
+
                     currentRecipientsTextField.setVisible(false);
                     currentRecipientsListView.setVisible(true);
                 }

@@ -42,8 +42,7 @@ public class LoginAndMailboxController {
     private HashMap<String, Pane> screenMap;
     private BorderPane root;
     private ScheduledExecutorService executorService;
-    private ScheduledFuture<?> timedGetMailList;
-    private SimpleListProperty<Mail> listTry;
+    private UpdateMailbox updateMailbox;
 
     public static final Pattern EMAIL_ADDRESS_REGEX =
             Pattern.compile("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,6}$", Pattern.CASE_INSENSITIVE);
@@ -68,8 +67,7 @@ public class LoginAndMailboxController {
         this.screenMap = screenMap;
         this.root = root;
         this.executorService = executorService;
-        timedGetMailList = null;
-        this.listTry = new SimpleListProperty<>(FXCollections.observableArrayList());
+        this.updateMailbox = null;
     }
 
     @FXML
@@ -85,14 +83,17 @@ public class LoginAndMailboxController {
     public void handleLoginButton(ActionEvent actionEvent) {
 
         String givenMailAddress = insertedMail.getText();
-        //if(timedGetMailList != null){
-        //    // TODO: gestire quando premo login una seconda volta l'interruzione del primo Runnable ogni 3 sec.
-        //    timedGetMailList.cancel(true);
-        //}
+
+
+        if(updateMailbox != null){
+            // TODO: gestire quando premo login una seconda volta l'interruzione del primo Runnable ogni 3 sec.
+            updateMailbox.cancel();
+        }
 
         if(!validate(givenMailAddress)) {
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
             alert.setTitle("Wrong email");
+            alert.setHeaderText(null);
             alert.setContentText("Please insert a valid email");
 
             alert.showAndWait();
@@ -200,7 +201,8 @@ public class LoginAndMailboxController {
         //Runnable getCurrentMailList = new GetCurrentMailList(givenMailAddress, mailListView);
         //timedGetMailList = executorService.scheduleAtFixedRate(getCurrentMailList, 5, 5, TimeUnit.SECONDS);
 
-        UpdateMailbox updateMailbox = new UpdateMailbox(givenMailAddress, Request.UPDATE_MAILLIST, mailbox.getCurrentMailList());
+        updateMailbox = new UpdateMailbox(givenMailAddress, Request.UPDATE_MAILLIST);
+
         updateMailbox.setPeriod(Duration.seconds(3));
         updateMailbox.setDelay(Duration.seconds(3));
 
@@ -232,14 +234,14 @@ public class LoginAndMailboxController {
                     Alert alert = new Alert(Alert.AlertType.ERROR);
                     alert.setTitle("Internal error");
                     alert.setHeaderText(null);
-                    alert.setContentText("Internal error: Try again later!");
+                    alert.setContentText("The server is currently down: try again later!");
 
                     alert.showAndWait();
                 } else  {
                     Alert alert = new Alert(Alert.AlertType.ERROR);
                     alert.setTitle("Internal error");
                     alert.setHeaderText(null);
-                    alert.setContentText("The server is currently down: try again later!");
+                    alert.setContentText("Internal error: Try again later!");
 
                     alert.showAndWait();
                 }
@@ -377,12 +379,10 @@ public class LoginAndMailboxController {
     private class UpdateMailbox extends ScheduledService<List<Mail>> {
         private final String address;
         private int requestType;
-        private List<Mail> current;
 
-        private UpdateMailbox(String address, int requestType, List<Mail> current){
+        private UpdateMailbox(String address, int requestType){
             this.address = address;
             this.requestType = requestType;
-            this.current = current;
         }
 
         @Override
@@ -397,6 +397,8 @@ public class LoginAndMailboxController {
 
                 boolean notConnected = true;
                 int tries = 0;
+
+                System.out.println("Timed requested by: " + address);
 
                 ObservableList<Mail> mailList = null;
                 List<Mail> m = null;

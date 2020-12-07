@@ -6,10 +6,7 @@ public class Request implements Serializable {
     public static final int GET_FULL_MAILLIST = 0;
     public static final int UPDATE_MAILLIST = 1;
     public static final int SEND = 2;
-    public static final int REPLY_ALL = 3;
-    public static final int FORWARD = 4;
     public static final int DELETE = 5;
-    public static final int NEW = 6;
 
     private String address;
     private int type;
@@ -30,16 +27,54 @@ public class Request implements Serializable {
     public int getType() {
         return type;
     }
+
     public String getAddress() {
         return address;
     }
+
     public Mail getBody() {
         return body;
     }
 
-    // TODO: creare una stringa "stile log" per ogni type (saranno visualizzate nella ListView del server)
     @Override
     public String toString() {
-        return super.toString();
+        StringBuilder text = new StringBuilder();
+
+            text.append(getAddress() != null ? getAddress() : "UNKNOWN");
+            switch (getType()) {
+                case Request.GET_FULL_MAILLIST: {
+                    text.append(": Connection and FULL MAILLIST ");
+                    break;
+                }
+
+                case Request.UPDATE_MAILLIST: {
+                    text.append(": Connection and INCREMENTAL MAILLIST ");
+                    break;
+                }
+
+                case Request.SEND: {
+                    Mail m = getBody();
+                    text.append(": SEND MAIL request to ");
+                    for (String recipient : m.getRecipients()) {
+                        text.append(recipient).append(", ");
+                    }
+                    text.deleteCharAt(text.length() - 1);
+                    break;
+                }
+
+                case Request.DELETE: {
+                    Mail m = getBody();
+                    text.append(": DELETE MAIL request of MailID: ").append(m.getID());
+                    break;
+                }
+
+                default: {
+                    text.append(": BAD REQUEST");
+                    break;
+                }
+            }
+
+            return text.toString();
+
     }
 }

@@ -25,56 +25,24 @@ public class ServerLogController implements Initializable {
     private Mailboxes mailboxes;
 
     @FXML
-    private ListView<Request> logListView;
+    private ListView<Log> logListView;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         mailboxes = new Mailboxes();
 
-        // Set the entire MailList (ObservableList<Mail>) to the ListView
+        // Set the entire MailList (ObservableList<Request>) to the ListView
         logListView.setItems(mailboxes.logsProperty());
 
         // Show the title of the Mail for each one in the ObservableList
-        logListView.setCellFactory(lv -> new ListCell<Request>() {
+        logListView.setCellFactory(lv -> new ListCell<Log>() {
             @Override
-            public void updateItem(Request r, boolean empty) {
-                super.updateItem(r, empty);
+            public void updateItem(Log l, boolean empty) {
+                super.updateItem(l, empty);
                 if (empty) {
                     setText(null);
                 } else {
-                    switch (r.getType()) {
-                        case Request.GET_FULL_MAILLIST: {
-                            setText("Request of full mailList started by " + r.getAddress());
-                            break;
-                        }
-
-                        case Request.UPDATE_MAILLIST:{
-                            setText("Request of incremental mailList by " + r.getAddress());
-                            break;
-                        }
-
-                        case Request.SEND:{
-                            Mail m = r.getBody();
-                            StringBuilder s = new StringBuilder("Send mail request by " + r.getAddress() + " to ");
-                            for(String recipient : m.getRecipients()){
-                                s.append(recipient).append(", ");
-                            }
-                            s.deleteCharAt(s.length()-1);
-                            setText(s.toString());
-                            break;
-                        }
-
-                        default:{
-                            StringBuilder s = new StringBuilder("Bad request from ");
-                            if(r.getAddress() != null){
-                                s.append(r.getAddress());
-                            } else {
-                                s.append("Unknown");
-                            }
-                            break;
-                        }
-
-                    }
+                   setText(l.logText());
                 }
             }
         });
@@ -136,21 +104,21 @@ public class ServerLogController implements Initializable {
                     case Request.UPDATE_MAILLIST:
                     case Request.GET_FULL_MAILLIST: {
                         //System.out.println("Recupero mail...");
-                        Runnable sendMailList = new SendMailList(toClient, r.getAddress(), r.getType());
+                        Runnable sendMailList = new SendMailList(toClient, r);
                         executorService.execute(sendMailList);
                         break;
                     }
 
                     case Request.SEND:{
                         System.out.println("Reply mail...: " + r.getBody().getRecipients());
-                        Runnable writeMail = new WriteMail(toClient, r.getBody());
+                        Runnable writeMail = new WriteMail(toClient, r);
                         executorService.execute(writeMail);
                         break;
                     }
 
                     case Request.DELETE:{
                         System.out.println("Delete mail...: " + r.getBody());
-                        Runnable deleteMail = new DeleteMail(toClient, r.getAddress(), r.getBody());
+                        Runnable deleteMail = new DeleteMail(toClient, r);
                         executorService.execute(deleteMail);
                         break;
                     }
@@ -160,7 +128,7 @@ public class ServerLogController implements Initializable {
                 Platform.runLater(new Runnable() {
                     @Override
                     public void run() {
-                        logListView.getItems().add(r);
+                        mailboxes.logsProperty().add(new Log(r));
                     }
                 });
 
@@ -171,35 +139,38 @@ public class ServerLogController implements Initializable {
     }
 
     private class SendMailList implements Runnable {
-        private String address;
         private ObjectOutputStream toClient;
-        private int requestType;
+        private Request request;
 
-        private SendMailList(ObjectOutputStream toClient, String address, int requestType) {
+        private SendMailList(ObjectOutputStream toClient, Request request) {
             this.toClient = toClient;
-            this.address = address;
-            this.requestType = requestType;
+            this.request = request;
         }
 
         @Override
         public void run() {
             try {
                 boolean type = false;
-                if(requestType == Request.UPDATE_MAILLIST)
+                if(request.getType() == Request.UPDATE_MAILLIST)
                     type = true;
 
-                List<Mail> a = mailboxes.getMailboxMailist(address, type);
+                List<Mail> mailList = mailboxes.getMailboxMailist(request.getAddress(), type);
 
-                for(Mail m : a){
+                for(Mail m : mailList){
                     System.out.println("Server controller ID: " + m.getID());
                 }
+                Response response = new Response(Response.OK, mailList);
+                toClient.writeObject(response);
 
-                toClient.writeObject(new Response(Response.OK, a));
+                Platform.runLater(() -> mailboxes.logsProperty().add(new Log(response, request)));
             } catch(NoSuchElementException noSuchElementException) {
                 try {
-                    toClient.writeObject(new Response(Response.ADDRESS_NOT_FOUND));
+                    Response response = new Response(Response.ADDRESS_NOT_FOUND, request.getAddress());
+                    toClient.writeObject(response);
+
+                    Platform.runLater(() -> mailboxes.logsProperty().add(new Log(response, request)));
                 } catch (Exception e){
-                    e.printStackTrace();
+                    e.printStackTrace(); // TODO: inviare internal error
                 }
             } catch (Exception e){
                 e.printStackTrace();
@@ -208,27 +179,36 @@ public class ServerLogController implements Initializable {
     }
 
     private class WriteMail implements Runnable{
-        private Mail newMail;
         private ObjectOutputStream toClient;
+        private Request request;
 
-        private WriteMail(ObjectOutputStream toClient, Mail newMail) {
+        private WriteMail(ObjectOutputStream toClient, Request request) {
             this.toClient = toClient;
-            this.newMail = newMail;
+            this.request = request;
         }
 
         @Override
         public void run() {
+            String lastAddress = null;
             try {
+                Mail newMail = request.getBody();
                 for(String address : newMail.getRecipients()){
                     System.out.println("Invio a: " + address);
+                    lastAddress = address;
                     mailboxes.updateMailboxMailist(address, newMail);
                 }
-                toClient.writeObject(new Response(Response.OK));
+                Response response = new Response(Response.OK);
+                toClient.writeObject(response);
+
+                Platform.runLater(() -> mailboxes.logsProperty().add(new Log(response, request)));
             } catch (NoSuchElementException noSuchElementException){
                 try {
-                    toClient.writeObject(new Response(Response.ADDRESS_NOT_FOUND));
+                    Response response = new Response(Response.ADDRESS_NOT_FOUND, lastAddress);
+                    toClient.writeObject(response);
+
+                    Platform.runLater(() -> mailboxes.logsProperty().add(new Log(response, request)));
                 } catch (Exception e){
-                    e.printStackTrace();
+                    e.printStackTrace(); // Client disconnesso
                 }
             } catch (Exception e){
                 e.printStackTrace();
@@ -238,26 +218,30 @@ public class ServerLogController implements Initializable {
     }
 
     private class DeleteMail implements Runnable {
-        private Mail mail;
         private ObjectOutputStream toClient;
-        private String address;
+        private Request request;
 
-        private DeleteMail(ObjectOutputStream toClient, String address, Mail mail) {
+        private DeleteMail(ObjectOutputStream toClient, Request request) {
             this.toClient = toClient;
-            this.address = address;
-            this.mail = mail;
+            this.request = request;
         }
 
         @Override
         public void run() {
             try {
-                System.out.println("Deleting: " + mail.getID());
-                mailboxes.deleteMailboxMail(address, mail.getID());
+                System.out.println("Deleting: " + request.getBody().getID());
+                mailboxes.deleteMailboxMail(request.getAddress(), request.getBody().getID());
 
-                toClient.writeObject(new Response(Response.OK));
+                Response response = new Response(Response.OK);
+                toClient.writeObject(response);
+
+                Platform.runLater(() -> mailboxes.logsProperty().add(new Log(response, request)));
             } catch (NoSuchElementException noSuchElementException){
                 try {
-                    toClient.writeObject(new Response(Response.ADDRESS_NOT_FOUND));
+                    Response response = new Response(Response.ADDRESS_NOT_FOUND, request.getAddress());
+                    toClient.writeObject(response);
+
+                    Platform.runLater(() -> mailboxes.logsProperty().add(new Log(response, request)));
                 } catch (Exception e){
                     e.printStackTrace();
                 }
@@ -266,5 +250,4 @@ public class ServerLogController implements Initializable {
             }
         }
     }
-
 }

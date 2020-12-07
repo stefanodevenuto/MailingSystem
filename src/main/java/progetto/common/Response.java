@@ -11,22 +11,33 @@ public class Response implements Serializable {
 
     private int code;
     private List<Mail> body;
+    private String error;
 
     public Response(int code) {
         this.code = code;
         this.body = null;
+        error = null;
     }
 
     public Response(int code, List<Mail> mailList) {
         this.code = code;
         this.body = mailList;
+        error = null;
+    }
+
+    public Response(int code, String error){
+        this.code = code;
+        this.error = error;
     }
 
     public int getCode() {
         return code;
     }
-
     public List<Mail> getBody() {
         return body;
+    }
+
+    public String getError() {
+        return error;
     }
 }
