@@ -60,7 +60,7 @@ public class Requester {
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     public void getAndUpdateMailList(String givenMailAddress, ListView<Mail> mailListView, Button newBtn) {
-        GetFullMailList getFullMailList = new GetFullMailList();
+        GetFullMailList getFullMailList = new GetFullMailList(givenMailAddress);
         System.out.println("Current: " + (updateMailListTask == null));
 
         getFullMailList.setOnFailed(new EventHandler<>() {
@@ -119,12 +119,13 @@ public class Requester {
 
                 newBtn.setDisable(false);
 
+                // TODO: non funziona questo
                 if(updateMailListTask != null){
                     System.out.println("Chiudo il vecchio");
                     updateMailListTask.cancel();
                 }
 
-                getUpdatedMailList(loggedAddress, mailListView);
+                getUpdatedMailList(mailListView);
             }
         });
 
@@ -132,6 +133,11 @@ public class Requester {
     }
 
     private class GetFullMailList extends Service<List<Mail>> {
+        private String givenEmailAddress;
+
+        private GetFullMailList(String givenEmailAddress){
+            this.givenEmailAddress = givenEmailAddress;
+        }
 
         @Override
         protected Task<List<Mail>> createTask() {
@@ -139,7 +145,7 @@ public class Requester {
                 @Override
                 protected List<Mail> call() throws Exception {
                     newConnectionAndStreams();
-                    toServer.writeObject(new Request(Request.GET_FULL_MAILLIST, loggedAddress));
+                    toServer.writeObject(new Request(Request.GET_FULL_MAILLIST, givenEmailAddress));
                     List<Mail> mailList = handleResponse(fromServer.readObject());
 
                     toServer.close();
@@ -154,8 +160,8 @@ public class Requester {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    private void getUpdatedMailList(String givenMailAddress, ListView<Mail> mailListView) {
-        GetUpdatedMailList getUpdatedMailList = new GetUpdatedMailList(givenMailAddress);
+    private void getUpdatedMailList(ListView<Mail> mailListView) {
+        GetUpdatedMailList getUpdatedMailList = new GetUpdatedMailList();
 
         tries = 0;
 
@@ -191,7 +197,7 @@ public class Requester {
                         getUpdatedMailList.cancel();
                     }
                 } else if(exc instanceof NoSuchElementException){
-                    CustomAlert.wrongAddress(givenMailAddress).show();
+                    CustomAlert.wrongAddress(loggedAddress).show();
                 } else {
                     CustomAlert.internalError().show();
                 }
@@ -224,10 +230,8 @@ public class Requester {
     }
 
     private class GetUpdatedMailList extends ScheduledService<List<Mail>> {
-        private final String givenMailAddress;
 
-        private GetUpdatedMailList(String givenMailAddress){
-            this.givenMailAddress = givenMailAddress;
+        private GetUpdatedMailList(){
             updateMailListTask = this;
         }
 
@@ -238,7 +242,7 @@ public class Requester {
                 protected List<Mail> call() throws IOException, ClassNotFoundException, NoSuchElementException, InternalError {
                     try{
                         newConnectionAndStreams();
-                        toServer.writeObject(new Request(Request.UPDATE_MAILLIST, givenMailAddress));
+                        toServer.writeObject(new Request(Request.UPDATE_MAILLIST, loggedAddress));
                         return handleResponse(fromServer.readObject());
                     } finally {
                         toServer.close();
@@ -261,36 +265,111 @@ public class Requester {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    public void deleteMail(){
-        if(loggedAddress == null){
+    public void deleteCurrentMail() {
 
-        }
+        DeleteCurrentMail deleteCurrentMail = new DeleteCurrentMail();
 
-        DeleteMail deleteMail = new DeleteMail();
+        deleteCurrentMail.setOnSucceeded(workerStateEvent -> mailbox.removeCurrentMail());
 
-        deleteMail.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
-            @Override
-            public void handle(WorkerStateEvent workerStateEvent) {
-                mailbox.removeCurrentMail();
+        deleteCurrentMail.setOnFailed(workerStateEvent -> {
+            Throwable exc = deleteCurrentMail.getException();
+
+            if (exc instanceof ConnectException) {
+                Alert notConnected = CustomAlert.errorAlert("Not connected");
+                notConnected.setContentText("The client is not connected: wait the reconnection process or " +
+                        "redo the login process");
+                notConnected.show();
+            } else if (exc instanceof NoSuchElementException) {
+                CustomAlert.wrongAddress(loggedAddress).show();
+            } else {
+                CustomAlert.internalError().show();
             }
         });
 
-        deleteMail.setOnFailed(new EventHandler<WorkerStateEvent>() {
-            @Override
-            public void handle(WorkerStateEvent workerStateEvent) {
-
-            }
-        });
+        deleteCurrentMail.start();
     }
 
-    private class DeleteMail extends Task<Void>{
-
+    private class DeleteCurrentMail extends Service<Void>{
 
         @Override
-        protected Void call() throws Exception {
-            return null;
+        protected Task<Void> createTask() {
+            return new Task<>() {
+                @Override
+                protected Void call() throws IOException, ClassNotFoundException, NoSuchElementException, InternalError {
+                    try {
+                        newConnectionAndStreams();
+                        toServer.writeObject(new Request(Request.DELETE, loggedAddress, mailbox.getCurrentMail()));
+                        handleResponse(fromServer.readObject());
+
+                        return null;
+                    } finally {
+                        toServer.close();
+                        fromServer.close();
+                        server.close();
+                    }
+                }
+            };
         }
     }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    public void sendCurrentMail() {
+        SendCurrentMail sendCurrentMail = new SendCurrentMail();
+
+        sendCurrentMail.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
+            @Override
+            public void handle(WorkerStateEvent workerStateEvent) {
+                Alert notConnected = CustomAlert.informationAlert("Success");
+                notConnected.setContentText("Mail sent successfully!");
+                notConnected.show();
+
+
+            }
+        });
+
+        sendCurrentMail.setOnFailed(new EventHandler<WorkerStateEvent>() {
+            @Override
+            public void handle(WorkerStateEvent workerStateEvent) {
+                Throwable exc = sendCurrentMail.getException();
+
+                if (exc instanceof ConnectException) {
+                    Alert notConnected = CustomAlert.errorAlert("Not connected");
+                    notConnected.setContentText("The client is not connected: wait the reconnection process or " +
+                            "redo the login process");
+                    notConnected.show();
+                } else if (exc instanceof NoSuchElementException) {
+                    CustomAlert.wrongAddress(loggedAddress).show();
+                } else {
+                    CustomAlert.internalError().show();
+                }
+            }
+        });
+    }
+
+    private class SendCurrentMail extends Service<Void>{
+
+        @Override
+        protected Task<Void> createTask() {
+            return new Task<>() {
+                @Override
+                protected Void call() throws IOException, ClassNotFoundException, NoSuchElementException, InternalError {
+                    try {
+                        newConnectionAndStreams();
+                        toServer.writeObject(new Request(Request.SEND, loggedAddress, mailbox.getCurrentMail()));
+                        handleResponse(fromServer.readObject());
+
+                        return null;
+                    } finally {
+                        toServer.close();
+                        fromServer.close();
+                        server.close();
+                    }
+                }
+            };
+        }
+    }
+
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

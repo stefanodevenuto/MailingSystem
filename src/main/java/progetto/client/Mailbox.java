@@ -37,7 +37,7 @@ public class Mailbox {
         return new ArrayList<>(currentMailListProperty());
     }
     public void removeCurrentMail(){
-        currentMailListProperty().remove(getCurrentMail());
+        currentMailList.remove(getCurrentMail());
     }
 
     public ObjectProperty<Mail> currentMailProperty() {

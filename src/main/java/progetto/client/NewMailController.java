@@ -1,7 +1,9 @@
 package progetto.client;
 
+import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
@@ -182,5 +184,23 @@ public class NewMailController {
         });
     }
 
+    /*private void bindBidirectionalAll(StringProperty titleProperty, StringProperty senderProperty,
+                                      ObservableList<String> recipientsProperty, StringProperty textProperty){
+
+        currentTitle.textProperty().bindBidirectional(titleProperty);
+        currentSender.textProperty().bindBidirectional(senderProperty);
+        currentRecipients.setItems(recipientsProperty);
+        currentText.textProperty().bindBidirectional(textProperty);
+
+    }
+
+    private void unbindBidirectionalAll(StringProperty titleProperty, StringProperty senderProperty,
+                                        StringProperty textProperty){
+
+        currentTitle.textProperty().unbindBidirectional(titleProperty);
+        currentSender.textProperty().unbindBidirectional(senderProperty);
+        currentRecipients.setItems(null);
+        currentText.textProperty().unbindBidirectional(textProperty);
+    }*/
 
 }

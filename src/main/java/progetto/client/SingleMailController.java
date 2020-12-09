@@ -60,46 +60,7 @@ public class SingleMailController {
 
     @FXML
     public void handleDeleteButton(ActionEvent actionEvent) {
-        try {
-            Socket server = new Socket("localhost", 4444);
-
-            try {
-                ObjectOutputStream toServer = new ObjectOutputStream(server.getOutputStream());
-                ObjectInputStream fromServer = new ObjectInputStream(server.getInputStream());
-                try{
-                    toServer.writeObject(new Request(Request.DELETE, mailbox.getAddress(), mailbox.getCurrentMail()));
-
-                    Object o = fromServer.readObject();
-
-                    if(o != null && o instanceof Response){
-                        if(((Response)o).getCode() == Response.OK){
-
-                                /*List<Mail> a = mailbox.getCurrentMailList();
-                                a.remove(mailbox.getCurrentMail());
-
-                                for(Mail b : a){
-                                    System.out.println(b.getTitle());
-                                }
-
-                                mailbox.setCurrentMailList(FXCollections.observableArrayList(a));*/
-                                mailbox.currentMailListProperty().remove(mailbox.getCurrentMail());
-
-                        }
-                    }
-
-                } finally {
-                    toServer.close();
-                    fromServer.close();
-                }
-
-            } finally {
-                System.out.println("Chiuso");
-                server.close();
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        requester.deleteCurrentMail();
     }
 
     @FXML
@@ -209,24 +170,5 @@ public class SingleMailController {
         currentSender.textProperty().unbind();
         currentRecipients.setItems(null);
         currentText.textProperty().unbind();
-    }
-
-    private void bindBidirectionalAll(StringProperty titleProperty, StringProperty senderProperty,
-                                      ObservableList<String> recipientsProperty, StringProperty textProperty){
-
-        currentTitle.textProperty().bindBidirectional(titleProperty);
-        currentSender.textProperty().bindBidirectional(senderProperty);
-        currentRecipients.setItems(recipientsProperty);
-        currentText.textProperty().bindBidirectional(textProperty);
-
-    }
-
-    private void unbindBidirectionalAll(StringProperty titleProperty, StringProperty senderProperty,
-                                        StringProperty textProperty){
-
-        currentTitle.textProperty().unbindBidirectional(titleProperty);
-        currentSender.textProperty().unbindBidirectional(senderProperty);
-        currentRecipients.setItems(null);
-        currentText.textProperty().unbindBidirectional(textProperty);
     }
 }
