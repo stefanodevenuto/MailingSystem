@@ -34,6 +34,8 @@ import java.util.List;
 public class SingleMailController {
 
     private Mailbox mailbox;
+    private Requester requester;
+
     private HashMap<String, Pane> screenMap;
     private BorderPane root;
     private static final int LIST_CELL_HEIGHT = 24;
@@ -55,21 +57,6 @@ public class SingleMailController {
 
     @FXML
     private TextArea currentText;
-
-    @FXML
-    private Button replyBtn;
-
-    @FXML
-    private Button replyAllBtn;
-
-    @FXML
-    private Button forwardBtn;
-
-    @FXML
-    private Button deleteBtn;
-
-    @FXML
-    private Button sendBtn;
 
     @FXML
     public void handleDeleteButton(ActionEvent actionEvent) {
@@ -162,7 +149,7 @@ public class SingleMailController {
         root.setRight(screenMap.get("newMail"));
     }
 
-    public void initController(Mailbox mailbox, HashMap<String, Pane> screenMap, BorderPane root) {
+    public void initController(Mailbox mailbox, HashMap<String, Pane> screenMap, BorderPane root, Requester requester) {
         // ensure model is only set once:
         if (this.mailbox != null) {
             throw new IllegalStateException("Model can only be initialized once");
@@ -171,6 +158,7 @@ public class SingleMailController {
         this.mailbox = mailbox;
         this.screenMap = screenMap;
         this.root = root;
+        this.requester = requester;
 
         this.mailbox.currentMailProperty().addListener(new ChangeListener() {
             @Override

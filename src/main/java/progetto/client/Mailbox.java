@@ -30,11 +30,14 @@ public class Mailbox {
     public ObservableList<Mail> currentMailListProperty() {
         return currentMailList;
     }
-    public void setCurrentMailList(ObservableList<Mail> current) {
-        currentMailList = current;
+    public void setCurrentMailList(List<Mail> current) {
+        currentMailList = FXCollections.observableArrayList(current);
     }
     public List<Mail> getCurrentMailList() {
         return new ArrayList<>(currentMailListProperty());
+    }
+    public void removeCurrentMail(){
+        currentMailListProperty().remove(getCurrentMail());
     }
 
     public ObjectProperty<Mail> currentMailProperty() {

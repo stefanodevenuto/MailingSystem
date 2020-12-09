@@ -7,10 +7,11 @@ import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
+import progetto.common.Mail;
 
 import java.util.HashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.List;
+import java.util.concurrent.*;
 
 public class Main extends Application {
     ScheduledExecutorService executorService = Executors.newScheduledThreadPool(3);
@@ -22,9 +23,9 @@ public class Main extends Application {
         //primaryStage.setScene(new Scene(root));
         //primaryStage.show();
 
+
         BorderPane root = new BorderPane();
         HashMap<String, Pane> screenMap = new HashMap<>();
-
 
         FXMLLoader loginAndMailboxLoader = new FXMLLoader(getClass().getResource("/progetto.client/loginAndMailbox.fxml"));
         FXMLLoader singleMailLoader = new FXMLLoader(getClass().getResource("/progetto.client/singleMail.fxml"));
@@ -47,9 +48,10 @@ public class Main extends Application {
 
         // New Model
         Mailbox mailbox = new Mailbox();
-        loginAndMailboxController.initController(mailbox, screenMap, root, executorService);
-        singleMailController.initController(mailbox, screenMap, root);
-        newMailController.initController(mailbox, screenMap, root);
+        Requester requester = new Requester("localhost", 4444, mailbox);
+        loginAndMailboxController.initController(mailbox, screenMap, root, executorService, requester);
+        singleMailController.initController(mailbox, screenMap, root, requester);
+        newMailController.initController(mailbox, screenMap, root, requester);
 
         primaryStage.setTitle("Client");
         primaryStage.setScene(scene);

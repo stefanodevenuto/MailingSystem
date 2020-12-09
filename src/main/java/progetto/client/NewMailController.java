@@ -25,6 +25,8 @@ import java.util.NoSuchElementException;
 
 public class NewMailController {
     private Mailbox mailbox;
+    private Requester requester;
+
     private HashMap<String, Pane> screenMap;
     private BorderPane root;
 
@@ -106,7 +108,7 @@ public class NewMailController {
     }
 
 
-    public void initController(Mailbox mailbox, HashMap<String, Pane> screenMap, BorderPane root) {
+    public void initController(Mailbox mailbox, HashMap<String, Pane> screenMap, BorderPane root, Requester requester) {
         // ensure model is only set once:
         if (this.mailbox != null) {
             throw new IllegalStateException("Model can only be initialized once");
@@ -115,6 +117,7 @@ public class NewMailController {
         this.mailbox = mailbox;
         this.screenMap = screenMap;
         this.root = root;
+        this.requester = requester;
 
         //mailbox.setCurrentMail(new Mail());
 
@@ -136,7 +139,7 @@ public class NewMailController {
             @Override
             public void changed(ObservableValue observable, Mail oldMail, Mail newMail) {
 
-                if(newMail != null && newMail.getRecipients().isEmpty()){
+                if(newMail != null && (newMail.getRecipients() == null || newMail.getRecipients().isEmpty())){
                     System.out.println("Arrivo da una Forward/New");
                     currentRecipientsTextField.setVisible(true);
                     currentRecipientsListView.setVisible(false);

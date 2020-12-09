@@ -1,10 +1,5 @@
 package progetto.client;
 
-import javafx.application.Platform;
-import javafx.beans.property.ListProperty;
-import javafx.beans.property.SimpleListProperty;
-import javafx.beans.value.ObservableListValue;
-import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.*;
@@ -24,14 +19,10 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ConnectException;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -39,10 +30,11 @@ import java.util.regex.Pattern;
 public class LoginAndMailboxController {
 
     private Mailbox mailbox;
+    private Requester requester;
+
     private HashMap<String, Pane> screenMap;
     private BorderPane root;
     private ScheduledExecutorService executorService;
-    private UpdateMailbox updateMailbox;
 
     public static final Pattern EMAIL_ADDRESS_REGEX =
             Pattern.compile("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,6}$", Pattern.CASE_INSENSITIVE);
@@ -57,7 +49,7 @@ public class LoginAndMailboxController {
     @FXML
     private Button newBtn;
 
-    public void initController(Mailbox mailbox, HashMap<String, Pane> screenMap, BorderPane root, ScheduledExecutorService executorService) {
+    public void initController(Mailbox mailbox, HashMap<String, Pane> screenMap, BorderPane root, ScheduledExecutorService executorService, Requester requester) {
         // ensure model is only set once
         if (this.mailbox != null) {
             throw new IllegalStateException("Model can only be initialized once");
@@ -67,7 +59,7 @@ public class LoginAndMailboxController {
         this.screenMap = screenMap;
         this.root = root;
         this.executorService = executorService;
-        this.updateMailbox = null;
+        this.requester = requester;
     }
 
     @FXML
@@ -84,98 +76,7 @@ public class LoginAndMailboxController {
 
         String givenMailAddress = insertedMail.getText();
 
-
-        if(updateMailbox != null){
-            // TODO: gestire quando premo login una seconda volta l'interruzione del primo Runnable ogni 3 sec.
-            updateMailbox.cancel();
-        }
-
-        if(!validate(givenMailAddress)) {
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("Wrong email");
-            alert.setHeaderText(null);
-            alert.setContentText("Please insert a valid email");
-
-            alert.showAndWait();
-            return;
-        }
-        boolean notConnected = true;
-        int tries = 0;
-        while(notConnected){
-            try {
-                Socket server = new Socket("localhost", 4444);
-                notConnected = false;
-                try {
-                    ObjectOutputStream toServer = new ObjectOutputStream(server.getOutputStream());
-                    ObjectInputStream fromServer = new ObjectInputStream(server.getInputStream());
-
-                    try {
-                        toServer.writeObject(new Request(Request.GET_FULL_MAILLIST, givenMailAddress));
-                        System.out.println("Requested full maillist");
-                        Object o = fromServer.readObject();
-
-                        List<Mail> m;
-
-                        try {
-                            m = handleResponse(o);
-                        } catch (NoSuchElementException noSuchElementException){
-                            Alert alert = new Alert(Alert.AlertType.WARNING);
-                            alert.setTitle("Wrong email");
-                            alert.setHeaderText(null);
-                            alert.setContentText("The inserted email doesn't exist!");
-
-                            alert.showAndWait();
-                            return;
-                        } catch (InternalError internalError){
-                            Alert alert = new Alert(Alert.AlertType.ERROR);
-                            alert.setTitle("Internal error");
-                            alert.setHeaderText(null);
-                            alert.setContentText("Internal error: Try again later!");
-
-                            alert.showAndWait();
-                            return;
-                        }
-
-                        // Retrieve the original ObservableList type
-                        ObservableList<Mail> mailList = FXCollections.observableArrayList(m);
-
-                        mailbox.setAddress(givenMailAddress);
-                        mailbox.setCurrentMailList(mailList);
-                    } finally {
-                        toServer.close();
-                        fromServer.close();
-                    }
-
-
-                } finally {
-                    System.out.println("Chiuso");
-                    server.close();
-                }
-
-            } catch (ConnectException e) {
-                tries++;
-                if(tries == MAX_TRIES){
-                    Alert alert = new Alert(Alert.AlertType.ERROR);
-                    alert.setTitle("Internal error");
-                    alert.setContentText("The server is currently down: try again later!");
-
-                    alert.showAndWait();
-                    return;
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-
-        for(Mail m : mailbox.getCurrentMailList()){
-            System.out.println(m);
-        }
-
-        // Set the entire MailList (ObservableList<Mail>) to the ListView
-        mailListView.setItems(mailbox.currentMailListProperty());
-        //mailListView.setItems(listTry);
-
-        // Show the title of the Mail for each one in the ObservableList
+        // Set the elements to visualize for every Mail in the ListView
         mailListView.setCellFactory(lv -> new ListCell<>() {
             @Override
             public void updateItem(Mail mail, boolean empty) {
@@ -189,71 +90,9 @@ public class LoginAndMailboxController {
             }
         });
 
-        newBtn.setDisable(false);
-        /*mailListView.getSelectionModel().selectedItemProperty().addListener((observable, oldMail, newMail) -> {
-            mailbox.setCurrentMail(newMail);
-            //screenMap.get("singleMail").setVisible(true);
-            root.setRight(screenMap.get("singleMail"));
-            System.out.println("Clicked");
-        });*/
+        requester.getAndUpdateMailList(givenMailAddress, mailListView, newBtn);
 
-        // Create a Runnable with a call to Platform.runLater
-        //Runnable getCurrentMailList = new GetCurrentMailList(givenMailAddress, mailListView);
-        //timedGetMailList = executorService.scheduleAtFixedRate(getCurrentMailList, 5, 5, TimeUnit.SECONDS);
-
-        updateMailbox = new UpdateMailbox(givenMailAddress, Request.UPDATE_MAILLIST);
-
-        updateMailbox.setPeriod(Duration.seconds(3));
-        updateMailbox.setDelay(Duration.seconds(3));
-
-        updateMailbox.setRestartOnFailure(false);
-
-        updateMailbox.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
-            @Override
-            public void handle(WorkerStateEvent workerStateEvent) {
-                List<Mail> result = updateMailbox.getLastValue();
-                if(result != null){
-                    mailbox.currentMailListProperty().addAll(result);
-                }
-            }
-        });
-
-        updateMailbox.setOnFailed(new EventHandler<WorkerStateEvent>() {
-            @Override
-            public void handle(WorkerStateEvent workerStateEvent) {
-                Throwable exc = updateMailbox.getException();
-
-                if (exc instanceof NoSuchElementException) {
-                    Alert alert = new Alert(Alert.AlertType.WARNING);
-                    alert.setTitle("Wrong email");
-                    alert.setHeaderText(null);
-                    alert.setContentText("The inserted email doesn't exist!");
-
-                    alert.showAndWait();
-                } else if (exc instanceof ConnectException) {
-                    Alert alert = new Alert(Alert.AlertType.ERROR);
-                    alert.setTitle("Internal error");
-                    alert.setHeaderText(null);
-                    alert.setContentText("The server is currently down: try again later!");
-
-                    alert.showAndWait();
-                } else  {
-                    Alert alert = new Alert(Alert.AlertType.ERROR);
-                    alert.setTitle("Internal error");
-                    alert.setHeaderText(null);
-                    alert.setContentText("Internal error: Try again later!");
-
-                    alert.showAndWait();
-                }
-            }
-        });
-
-
-        //mailListView.itemsProperty().bind(updateMailbox.lastValueProperty());
-        //mailListView.getItems().addAll(updateMailbox.getLastValue());
-        updateMailbox.start();
     }
-
 
     @FXML
     public void handleMouseClicked(MouseEvent arg0) {
