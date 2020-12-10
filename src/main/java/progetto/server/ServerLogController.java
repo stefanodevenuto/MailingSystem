@@ -21,7 +21,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class ServerLogController implements Initializable {
-    private static final int MAX_CLIENTS = 20;
+    private static final int MAX_CLIENTS = 3;
     private Mailboxes mailboxes;
 
     @FXML
@@ -35,14 +35,14 @@ public class ServerLogController implements Initializable {
         logListView.setItems(mailboxes.logsProperty());
 
         // Show the title of the Mail for each one in the ObservableList
-        logListView.setCellFactory(lv -> new ListCell<Log>() {
+        logListView.setCellFactory(lv -> new ListCell<>() {
             @Override
             public void updateItem(Log l, boolean empty) {
                 super.updateItem(l, empty);
                 if (empty) {
                     setText(null);
                 } else {
-                   setText(l.logText());
+                    setText(l.logText());
                 }
             }
         });

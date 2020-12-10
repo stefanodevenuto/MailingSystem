@@ -1,32 +1,22 @@
-package progetto.client;
+package progetto.client.controller;
 
-import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
-import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.binding.IntegerBinding;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.StringProperty;
-import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Node;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.RowConstraints;
-import javafx.stage.Stage;
+import progetto.client.model.Mailbox;
 import progetto.common.Mail;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.fxml.FXML;
-import progetto.common.Request;
-import progetto.common.Response;
 
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -140,16 +130,19 @@ public class SingleMailController {
                     gridPane.setVisible(false);
                 } else {
                     gridPane.setVisible(true);
+                    IntegerBinding recipientsSize = Bindings.size(newMail.recipientsProperty()).multiply(LIST_CELL_HEIGHT);
 
                     bindAll(newMail.titleProperty(), newMail.senderProperty(),
                             newMail.recipientsProperty(), newMail.textProperty());
 
                     // In order to make the Recipients' ListView list-length tall
                     // TODO: creare un punto dove diventa solo più scrollable
-                    currentRecipients.setMinHeight(newMail.recipientsProperty().size() * LIST_CELL_HEIGHT);
-                    currentRecipients.setPrefHeight(newMail.recipientsProperty().size() * LIST_CELL_HEIGHT);
-                    recipientsRow.setMinHeight(newMail.recipientsProperty().size() * LIST_CELL_HEIGHT);
-                    recipientsRow.setPrefHeight(newMail.recipientsProperty().size() * LIST_CELL_HEIGHT);
+
+                    currentRecipients.minHeightProperty().bind(recipientsSize);
+                    currentRecipients.prefHeightProperty().bind(recipientsSize);
+
+                    recipientsRow.minHeightProperty().bind(recipientsSize);
+                    recipientsRow.prefHeightProperty().bind(recipientsSize);
 
                 }
             }

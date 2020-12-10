@@ -2,27 +2,23 @@ package progetto.client;
 
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
-import progetto.common.Mail;
+import progetto.client.controller.LoginAndMailboxController;
+import progetto.client.controller.NewMailController;
+import progetto.client.controller.Requester;
+import progetto.client.controller.SingleMailController;
+import progetto.client.model.Mailbox;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.concurrent.*;
 
 public class Main extends Application {
-    ScheduledExecutorService executorService = Executors.newScheduledThreadPool(3);
 
     @Override
     public void start(Stage primaryStage) throws Exception{
-        //Parent root = FXMLLoader.load(getClass().getResource("sample.fxml"));
-        //primaryStage.setTitle("Mailbox");
-        //primaryStage.setScene(new Scene(root));
-        //primaryStage.show();
-
 
         BorderPane root = new BorderPane();
         HashMap<String, Pane> screenMap = new HashMap<>();
@@ -46,10 +42,10 @@ public class Main extends Application {
         Scene scene = new Scene(root);
         scene.getStylesheets().add(Main.class.getResource("/progetto.client/singleMail.css").toExternalForm());
 
-        // New Model
+        // Instantiate a new Model and initialize the controllers
         Mailbox mailbox = new Mailbox();
         Requester requester = new Requester("localhost", 4444, mailbox);
-        loginAndMailboxController.initController(mailbox, screenMap, root, executorService, requester);
+        loginAndMailboxController.initController(mailbox, screenMap, root, requester);
         singleMailController.initController(mailbox, screenMap, root, requester);
         newMailController.initController(mailbox, screenMap, root, requester);
 
@@ -58,42 +54,5 @@ public class Main extends Application {
         primaryStage.show();
     }
 
-    @Override
-    public void stop(){
-        executorService.shutdown();
-    }
-
-
-    public static void main(String[] args) {
-        launch(args);
-        /*try {
-            Socket server = new Socket("localhost", 4444);
-
-            try {
-                ObjectOutputStream outStream = new ObjectOutputStream(server.getOutputStream());
-                ObjectInputStream inStream = new ObjectInputStream(server.getInputStream());
-                System.out.println("2");
-                outStream.writeObject(new Request(Request.GET_MAILLIST, "first@gmail.com"));
-                List<Mail> mailList = (List<Mail>) inStream.readObject();
-                System.out.println("3");
-                for(Mail m : mailList){
-                    System.out.println("Title: " + m.getTitle() + ", Text: " + m.getText());
-                    System.out.print("Recipients: ");
-                    for(String b : new ArrayList<>(m.recipientsProperty())){
-                        System.out.println(b);
-                    }
-                    System.out.println();
-                }
-
-            } finally {
-                System.out.println("Chiuso");
-                server.close();
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }*/
-
-        System.out.println("Fine");
-    }
+    public static void main(String[] args) { launch(args); }
 }

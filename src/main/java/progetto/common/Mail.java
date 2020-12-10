@@ -2,15 +2,21 @@ package progetto.common;
 
 import com.opencsv.bean.CsvBindByPosition;
 import com.opencsv.bean.CsvCustomBindByPosition;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import progetto.common.converters.LocalDateConverter;
+import progetto.common.converters.ObservableListConverter;
+import progetto.common.converters.StringPropertyConverter;
 
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,16 +34,28 @@ public class Mail implements Externalizable  {
     @CsvCustomBindByPosition(position = 3, converter = StringPropertyConverter.class)
     private StringProperty sender =  new SimpleStringProperty();
 
-    @CsvCustomBindByPosition(position = 4, converter = ObservableListConverter.class)
+    @CsvCustomBindByPosition(position = 4, converter = LocalDateConverter.class)
+    private ObjectProperty<LocalDate> dateOfDispatch = new SimpleObjectProperty<>();
+
+    @CsvCustomBindByPosition(position = 5, converter = ObservableListConverter.class)
     private ObservableList<String> recipients = FXCollections.observableArrayList(new ArrayList<>());
+
+    private boolean newMail = false;
 
     public Mail() {}
 
-    public Mail(String title, String text, String sender, List<String> recipients) {
+    public Mail(String title, String text, String sender, LocalDate date, List<String> recipients) {
         setTitle(title);
         setText(text);
         setSender(sender);
+        setDateOfDispatch(date);
         setRecipients(recipients);
+    }
+    public int getID() {
+        return ID;
+    }
+    public void setID(int ID) {
+        this.ID = ID;
     }
 
     public StringProperty titleProperty() {
@@ -70,6 +88,16 @@ public class Mail implements Externalizable  {
         this.senderProperty().set(sender);
     }
 
+    public ObjectProperty<LocalDate> dateOfDispatchProperty() {
+        return dateOfDispatch;
+    }
+    public LocalDate getDateOfDispatch() {
+        return dateOfDispatchProperty().get();
+    }
+    public void setDateOfDispatch(LocalDate localDate) {
+        dateOfDispatchProperty().set(localDate);
+    }
+
     public ObservableList<String> recipientsProperty() {
         return recipients;
     }
@@ -80,12 +108,12 @@ public class Mail implements Externalizable  {
         return new ArrayList<>(recipientsProperty());
     }
 
-    public int getID() {
-        return ID;
+    public boolean getNewMail() {
+        return newMail;
     }
 
-    public void setID(int ID) {
-        this.ID = ID;
+    public void setNewMail(boolean newMail) {
+        this.newMail = newMail;
     }
 
     @Override
@@ -94,6 +122,7 @@ public class Mail implements Externalizable  {
         out.writeObject(getTitle());
         out.writeObject(getText());
         out.writeObject(getSender());
+        out.writeObject(getDateOfDispatch());
         out.writeObject(new ArrayList<>(recipientsProperty()));
     }
 
@@ -103,6 +132,7 @@ public class Mail implements Externalizable  {
         setTitle((String) in.readObject());
         setText((String) in.readObject());
         setSender((String) in.readObject());
+        setDateOfDispatch((LocalDate) in.readObject());
         setRecipients((List<String>) in.readObject());
     }
 

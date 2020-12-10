@@ -1,4 +1,4 @@
-package progetto.client;
+package progetto.client.model;
 
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -30,15 +30,11 @@ public class Mailbox {
     public ObservableList<Mail> currentMailListProperty() {
         return currentMailList;
     }
-    public void setCurrentMailList(List<Mail> current) {
-        currentMailList = FXCollections.observableArrayList(current);
-    }
-    public List<Mail> getCurrentMailList() {
-        return new ArrayList<>(currentMailListProperty());
-    }
-    public void removeCurrentMail(){
-        currentMailList.remove(getCurrentMail());
-    }
+    public synchronized void setCurrentMailList(List<Mail> current) { currentMailList = FXCollections.observableArrayList(current); }
+    public synchronized void removeCurrentMail(){ currentMailList.remove(getCurrentMail()); }
+    public synchronized void addCurrentMailList(Mail mail){ currentMailList.add(mail); }
+    public synchronized void addAllCurrentMailList(List<Mail> toAdd){ currentMailList.addAll(toAdd); }
+    public List<Mail> getCurrentMailList() { return new ArrayList<>(currentMailListProperty()); }
 
     public ObjectProperty<Mail> currentMailProperty() {
         return currentMail;

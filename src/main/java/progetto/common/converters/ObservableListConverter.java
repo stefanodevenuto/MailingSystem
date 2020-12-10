@@ -1,4 +1,4 @@
-package progetto.common;
+package progetto.common.converters;
 
 import com.opencsv.bean.AbstractBeanField;
 import javafx.beans.property.SimpleStringProperty;
@@ -10,7 +10,7 @@ import java.util.Arrays;
 import java.util.List;
 
 // To parse a CSV field to ObservableList
-public class ObservableListConverter extends AbstractBeanField {
+public class ObservableListConverter extends AbstractBeanField<ObservableList<String>, String> {
 
     // The recipients' addresses can't contain commas (,)
     @Override

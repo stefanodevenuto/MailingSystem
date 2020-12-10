@@ -40,41 +40,40 @@ public class Request implements Serializable {
     public String toString() {
         StringBuilder text = new StringBuilder();
 
-            text.append(getAddress() != null ? getAddress() : "UNKNOWN");
-            switch (getType()) {
-                case Request.GET_FULL_MAILLIST: {
-                    text.append(": Connection and FULL MAILLIST ");
-                    break;
-                }
-
-                case Request.UPDATE_MAILLIST: {
-                    text.append(": Connection and INCREMENTAL MAILLIST ");
-                    break;
-                }
-
-                case Request.SEND: {
-                    Mail m = getBody();
-                    text.append(": SEND MAIL request to ");
-                    for (String recipient : m.getRecipients()) {
-                        text.append(recipient).append(", ");
-                    }
-                    text.deleteCharAt(text.length() - 1);
-                    break;
-                }
-
-                case Request.DELETE: {
-                    Mail m = getBody();
-                    text.append(": DELETE MAIL request of MailID: ").append(m.getID());
-                    break;
-                }
-
-                default: {
-                    text.append(": BAD REQUEST");
-                    break;
-                }
+        text.append(getAddress() != null ? getAddress() : "UNKNOWN");
+        switch (getType()) {
+            case Request.GET_FULL_MAILLIST: {
+                text.append(": Connection and FULL MAILLIST ");
+                break;
             }
 
-            return text.toString();
+            case Request.UPDATE_MAILLIST: {
+                text.append(": Connection and INCREMENTAL MAILLIST ");
+                break;
+            }
 
+            case Request.SEND: {
+                Mail m = getBody();
+                text.append(": SEND MAIL request to ");
+                for (String recipient : m.getRecipients()) {
+                    text.append(recipient).append(", ");
+                }
+                text.deleteCharAt(text.length() - 1);
+                break;
+            }
+
+            case Request.DELETE: {
+                Mail m = getBody();
+                text.append(": DELETE MAIL request of MailID: ").append(m.getID());
+                break;
+            }
+
+            default: {
+                text.append(": BAD REQUEST");
+                break;
+            }
+        }
+
+        return text.toString();
     }
 }
