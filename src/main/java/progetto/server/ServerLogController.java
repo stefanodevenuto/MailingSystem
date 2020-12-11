@@ -3,12 +3,14 @@ package progetto.server;
 import javafx.application.Platform;
 import javafx.fxml.Initializable;
 import javafx.scene.control.ListCell;
+import progetto.client.model.Mailbox;
 import progetto.common.Mail;
 import javafx.fxml.FXML;
 import javafx.scene.control.ListView;
 import progetto.common.Request;
 import progetto.common.Response;
 
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
@@ -20,16 +22,27 @@ import java.util.ResourceBundle;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class ServerLogController implements Initializable {
-    private static final int MAX_CLIENTS = 3;
+public class ServerLogController {
     private Mailboxes mailboxes;
+    private ExecutorService executors;
 
     @FXML
     private ListView<Log> logListView;
 
-    @Override
-    public void initialize(URL url, ResourceBundle resourceBundle) {
-        mailboxes = new Mailboxes();
+    public void setExecutors(ExecutorService executors){
+        this.executors = executors;
+    }
+
+    public void initController(Mailboxes mailboxes, ExecutorService executors){
+
+        // ensure model is only set once
+        if (this.mailboxes != null) {
+            throw new IllegalStateException("Model can only be initialized once");
+        }
+
+        this.mailboxes = mailboxes;
+        this.executors = executors;
+
 
         // Set the entire MailList (ObservableList<Request>) to the ListView
         logListView.setItems(mailboxes.logsProperty());
@@ -48,16 +61,14 @@ public class ServerLogController implements Initializable {
         });
 
         Runnable startListener = new StartListener();
-        Thread t = new Thread(startListener);
-        t.start();
+        executors.execute(startListener);
     }
+
 
     public class StartListener implements Runnable{
 
         @Override
         public void run() {
-            System.out.println("Ascolto");
-            ExecutorService executors = Executors.newFixedThreadPool(MAX_CLIENTS);
             try {
                 ServerSocket acceptor = new ServerSocket(4444);
                 while(true) {
@@ -68,13 +79,28 @@ public class ServerLogController implements Initializable {
                     ObjectOutputStream toClient = new ObjectOutputStream(client.getOutputStream());
 
                     Runnable requestsHandler = new RequestsHandler(client, fromClient, toClient, executors);
+                    //Runnable requestsHandler = new RequestsHandler(client);
                     executors.execute(requestsHandler);
                 }
-            } catch (/*IO*/Exception e) {
+            } catch (IOException e) {
                 e.printStackTrace();
             }
         }
     }
+
+    /*private class RequestsHandler implements Runnable {
+        private Socket client;
+
+        private RequestsHandler(Socket client){
+            this.client = client;
+        }
+
+        @Override
+        public void run() {
+
+        }
+    }*/
+
 
     private class RequestsHandler implements Runnable {
         private Socket client;
@@ -250,4 +276,5 @@ public class ServerLogController implements Initializable {
             }
         }
     }
+
 }

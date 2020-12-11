@@ -1,6 +1,7 @@
 package progetto.server;
 
 import com.opencsv.bean.*;
+import com.opencsv.exceptions.CsvConstraintViolationException;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import progetto.common.Mail;
@@ -23,19 +24,20 @@ public class Mailboxes {
     private Map<String, Mailbox> mailboxList;
     private ObservableList<Log> logs = FXCollections.observableArrayList();
 
-    public Mailboxes() {
+    public Mailboxes(String path) throws IOException {
         mailboxList = new HashMap<>();
-        newMailbox("first@gmail.com");
-        newMailbox("second@gmail.com");
-        newMailbox("third@gmail.com");
-        newMailbox("fourth@gmail.com");
-        newMailbox("fifth@gmail.com");
+        try(Scanner users = new Scanner(new File(path))) {
+            while (users.hasNextLine()){
+                String user = users.nextLine();
+                System.out.println(user);
+                newMailbox(user);
+            }
+        }
     }
 
-    private Mailbox newMailbox(String address) {
+    private void newMailbox(String address) {
         Mailbox m = new Mailbox(address);
         mailboxList.put(address, m);
-        return m;
     }
 
     public ObservableList<Log> logsProperty() {
@@ -77,16 +79,16 @@ public class Mailboxes {
     private class Mailbox {
         private AtomicInteger SKIP_LINES = new AtomicInteger(0); // TODO: valutare se assegnare questo alla singola connessione
                                                                           // per evitare problemi sulla connessione dello stesso account contemporaneamente
-        private ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
-        private Lock readLock = readWriteLock.readLock();
-        private Lock writeLock = readWriteLock.writeLock();
+        private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
+        private final Lock readLock = readWriteLock.readLock();
+        private final Lock writeLock = readWriteLock.writeLock();
 
-        private String address;
-        private AtomicInteger emailCounter = new AtomicInteger();
+        private final String path;
+        private final AtomicInteger emailCounter = new AtomicInteger();
 
         private Mailbox(String address) {
-            this.address = address;
-            try(BufferedReader br = new BufferedReader(new FileReader("C:\\Users\\stefa\\Desktop\\" + address + ".csv"))) {
+            this.path = "C:\\Users\\stefa\\Desktop\\" + address + ".csv";
+            try(BufferedReader br = new BufferedReader(new FileReader(path))) {
 
                 String lastLine = "";
                 String currentLine = "";
@@ -112,7 +114,9 @@ public class Mailboxes {
             List<Mail> mailList = new ArrayList<>();
             readLock.lock();
             try {
-                Reader reader = Files.newBufferedReader(Paths.get("C:\\Users\\stefa\\Desktop\\" + address + ".csv"));
+                Reader reader = new FileReader(path);
+                BufferedReader bufferedReader = new ReplaceNewLineReader(reader);
+                //Reader reader = Files.newBufferedReader(Paths.get("C:\\Users\\stefa\\Desktop\\" + address + ".csv"));
                 CsvToBean<Mail> csvToBean;
 
                 // Ignores empty lines from the input
@@ -126,7 +130,7 @@ public class Mailboxes {
                 };
 
                 if(mode){
-                    csvToBean = new CsvToBeanBuilder<Mail>(reader)
+                    csvToBean = new CsvToBeanBuilder<Mail>(bufferedReader)
                             .withType(Mail.class)
                             .withIgnoreLeadingWhiteSpace(true)
                             .withFilter(ignoreEmptyLines)
@@ -134,13 +138,11 @@ public class Mailboxes {
                             .build();
                 }else{
                     SKIP_LINES.set(0); // To avoid the re-login update list view fail
-                    csvToBean = new CsvToBeanBuilder<Mail>(reader)
+                    csvToBean = new CsvToBeanBuilder<Mail>(bufferedReader)
                             .withType(Mail.class)
                             .withIgnoreLeadingWhiteSpace(true)
                             .withFilter(ignoreEmptyLines)
                             .build();
-
-
                 }
 
                 mailList = csvToBean.parse();
@@ -158,16 +160,18 @@ public class Mailboxes {
 
         private void updateMailList(Mail m) {
             m.setID(emailCounter.getAndIncrement());
+            m.setText(m.getText().replace("\n", "\\n"));
             writeLock.lock();
             try {
                 Writer writer = Files.newBufferedWriter(
-                        Paths.get("C:\\Users\\stefa\\Desktop\\" + address + ".csv"),
+                        Paths.get(path),
                         StandardOpenOption.CREATE,
                         StandardOpenOption.APPEND
                 );
 
                 StatefulBeanToCsv<Mail> beanToCsv = new StatefulBeanToCsvBuilder<Mail>(writer)
                         //.withQuotechar(CSVWriter.NO_QUOTE_CHARACTER)
+                        .withEscapechar('\\')
                         .build();
 
                 beanToCsv.write(m);
@@ -183,7 +187,7 @@ public class Mailboxes {
             writeLock.lock();
             List<Mail> tempMailList = new ArrayList<>();
             try {
-                Reader reader = Files.newBufferedReader(Paths.get("C:\\Users\\stefa\\Desktop\\" + address + ".csv"));
+                Reader reader = Files.newBufferedReader(Paths.get(path));
 
                 // Ignores empty lines from the input
                 CsvToBeanFilter ignoreEmptyLines = strings -> {
@@ -200,6 +204,7 @@ public class Mailboxes {
                         .withType(Mail.class)
                         .withIgnoreLeadingWhiteSpace(true)
                         .withFilter(ignoreEmptyLines)
+                        .withEscapeChar('\0')
                         .build();
 
                 Iterator<Mail> csvMailIterator = csvToBean.iterator();
@@ -217,9 +222,11 @@ public class Mailboxes {
 
                 System.out.println(tempMailList);
 
-                Writer writer = Files.newBufferedWriter(Paths.get("C:\\Users\\stefa\\Desktop\\" + address + ".csv"));
+                Writer writer = Files.newBufferedWriter(Paths.get(path));
 
-                StatefulBeanToCsv<Mail> beanToCsv = new StatefulBeanToCsvBuilder<Mail>(writer).build();
+                StatefulBeanToCsv<Mail> beanToCsv = new StatefulBeanToCsvBuilder<Mail>(writer)
+                        .withEscapechar('\0')
+                        .build();
 
                 beanToCsv.write(tempMailList);
 
@@ -228,11 +235,9 @@ public class Mailboxes {
                     SKIP_LINES.decrementAndGet();
                 }
 
-                System.out.println("Current emailCounter after delete: " + emailCounter.get());
-                //emailCounter.decrementAndGet();
 
-                // TODO: cancellazione in posizione < SKIP_LINES ==>    SKIP_LINES--;
-                //       altrimenti                              ==>    nulla
+                //  cancellazione in posizione < SKIP_LINES ==>    SKIP_LINES--;
+                //  altrimenti                              ==>    nulla
 
             }catch (Exception e) {
                 e.printStackTrace();
@@ -242,4 +247,21 @@ public class Mailboxes {
 
         }
     }
+
+    private static class ReplaceNewLineReader extends BufferedReader {
+
+        private ReplaceNewLineReader(Reader r) {
+            super(r);
+        }
+
+        @Override
+        public String readLine() throws IOException {
+            String line = super.readLine();
+            return line.replace("\\n", "\n");
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 }

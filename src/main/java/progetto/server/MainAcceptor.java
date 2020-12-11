@@ -14,8 +14,12 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class MainAcceptor extends Application {
+    private static final int MAX_THREADS = 3;
+    ExecutorService executors = Executors.newFixedThreadPool(MAX_THREADS);
 
     @Override
     public void start(Stage primaryStage) throws Exception{
@@ -25,10 +29,19 @@ public class MainAcceptor extends Application {
 
         ServerLogController serverLogController = serverLogLoader.getController();
 
+        Mailboxes mailboxes = new Mailboxes("C:\\Users\\stefa\\Desktop\\users.txt");
+        serverLogController.initController(mailboxes, executors);
+
         Scene scene = new Scene(root);
         primaryStage.setTitle("Server");
         primaryStage.setScene(scene);
         primaryStage.show();
+    }
+
+    @Override
+    public void stop() throws Exception {
+        executors.shutdown();
+        super.stop();
     }
 
     public static void main(String[] args) {

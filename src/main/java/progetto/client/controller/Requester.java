@@ -61,6 +61,8 @@ public class Requester {
     public void getAndUpdateMailList(String givenMailAddress, ListView<Mail> mailListView, Button newBtn) {
         GetFullMailList getFullMailList = new GetFullMailList(givenMailAddress);
         System.out.println("Current: " + (updateMailListTask == null));
+        tries = 0;
+        alertType.setValue(Alert.AlertType.INFORMATION);
 
         getFullMailList.setOnFailed(workerStateEvent -> {
             Throwable exc = getFullMailList.getException();
@@ -111,6 +113,7 @@ public class Requester {
 
             newBtn.setDisable(false);
 
+            System.out.println("IS null?: " + (updateMailListTask == null));
             // TODO: non funziona questo
             if(updateMailListTask != null){
                 updateMailListTask.cancel();
@@ -159,6 +162,7 @@ public class Requester {
         GetUpdatedMailList getUpdatedMailList = new GetUpdatedMailList();
 
         tries = 0;
+        alertType.setValue(Alert.AlertType.INFORMATION);
 
         getUpdatedMailList.setPeriod(Duration.seconds(3));
         getUpdatedMailList.setDelay(Duration.seconds(3));

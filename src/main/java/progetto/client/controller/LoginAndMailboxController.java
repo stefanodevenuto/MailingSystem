@@ -2,6 +2,8 @@ package progetto.client.controller;
 
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.IntegerBinding;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
@@ -73,11 +75,17 @@ public class LoginAndMailboxController {
                 if (empty) {
                     setText("\n\n\n");
                 } else {
+                    String newMailCssClass = "new-mail";
                     if(mail.getNewMail()){
-                        getStyleClass().add("new-mail");
-                    } else {
-                        getStyleClass().remove("new-mail");
+                        getStyleClass().add(newMailCssClass);
                     }
+
+                    selectedProperty().addListener((observableValue, aBoolean, notSelected) -> {
+                        if (!notSelected) {
+                            getStyleClass().remove(newMailCssClass);
+                        }
+                    });
+
 
                     setText("Title: " + mail.getTitle() + "\n" +
                             "From: " + mail.getSender() + "\n" +
@@ -95,12 +103,9 @@ public class LoginAndMailboxController {
 
     @FXML
     public void handleMouseClicked(MouseEvent arg0) {
-        mailListView.getSelectionModel().getSelectedItem().setNewMail(false);
-        mailListView.refresh();
-
         Mail m = mailListView.getSelectionModel().getSelectedItem();
         if(m != null){
-            //m.setNewMail(false);
+            m.setNewMail(false);
             System.out.println("Clicked: " + m.getID() + " " + m.toString());
             m.setNewMail(false);
             mailbox.setCurrentMail(m);
