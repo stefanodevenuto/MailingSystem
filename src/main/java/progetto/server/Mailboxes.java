@@ -2,6 +2,8 @@ package progetto.server;
 
 import com.opencsv.bean.*;
 import com.opencsv.exceptions.CsvConstraintViolationException;
+import com.opencsv.exceptions.CsvDataTypeMismatchException;
+import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import progetto.common.Mail;
@@ -35,11 +37,6 @@ public class Mailboxes {
         }
     }
 
-    private void newMailbox(String address) {
-        Mailbox m = new Mailbox(address);
-        mailboxList.put(address, m);
-    }
-
     public ObservableList<Log> logsProperty() {
         return logs;
     }
@@ -47,7 +44,12 @@ public class Mailboxes {
         logs = current;
     }
 
-    public List<Mail> getMailboxMailist(String address, boolean mode) throws NoSuchElementException{
+    private void newMailbox(String address) {
+        Mailbox m = new Mailbox(address);
+        mailboxList.put(address, m);
+    }
+
+    public List<Mail> getMailboxMailList(String address, boolean mode) throws NoSuchElementException, InternalError{
         Mailbox m = mailboxList.get(address);
         if(m == null){
             System.out.println("GetMailList: UTENTE NON ESISTE");
@@ -56,7 +58,7 @@ public class Mailboxes {
         return m.getMailList(mode);
     }
 
-    public void updateMailboxMailist(String address, Mail mail) throws NoSuchElementException{
+    public void updateMailboxMailList(String address, Mail mail) throws NoSuchElementException, InternalError{
         Mailbox m = mailboxList.get(address);
         if(m == null){
             System.out.println("Update: UTENTE NON ESISTE");
@@ -65,7 +67,7 @@ public class Mailboxes {
         m.updateMailList(mail);
     }
 
-    public void deleteMailboxMail(String address, int mailID) throws NoSuchElementException{
+    public void deleteMailboxMail(String address, int mailID) throws NoSuchElementException, InternalError{
         Mailbox m = mailboxList.get(address);
         if(m == null){
             System.out.println("Update: UTENTE NON ESISTE");
@@ -93,21 +95,16 @@ public class Mailboxes {
                 String lastLine = "";
                 String currentLine = "";
 
+                // Recover the last line
                 while ((currentLine = br.readLine()) != null) {
-                    //System.out.println(currentLine);
                     lastLine = currentLine;
                 }
 
-                // Get the last ID by matching the first value inside double quotes
-                Matcher m = Pattern.compile("(?<=\")([^\"]+)(?=\")").matcher(lastLine);
-                m.find();
-
-                emailCounter.set(Integer.parseInt(m.group(1)) + 1);
+                emailCounter.set(getIDFromLine(lastLine) + 1);
             } catch (IOException e){
                 System.out.println("IOException");
                 emailCounter.set(0);
             }
-
         }
 
         private List<Mail> getMailList(boolean mode) {
@@ -150,34 +147,39 @@ public class Mailboxes {
                 SKIP_LINES.getAndAdd(mailList.size());
                 reader.close();
 
-            }catch (Exception e) {
+            }catch (IOException | IllegalStateException e) {
                 return mailList;
-            } finally {
+            } catch (Exception e){
+                throw new InternalError();
+            } finally{
                 readLock.unlock();
-                return mailList;
             }
+
+            return mailList;
         }
 
         private void updateMailList(Mail m) {
             m.setID(emailCounter.getAndIncrement());
-            m.setText(m.getText().replace("\n", "\\n"));
+            String text = m.getText();
+            if(text != null){
+                m.setText(text.replace("\n", "\\n"));
+            }
+
             writeLock.lock();
-            try {
-                Writer writer = Files.newBufferedWriter(
-                        Paths.get(path),
-                        StandardOpenOption.CREATE,
-                        StandardOpenOption.APPEND
-                );
+            try(Writer writer = Files.newBufferedWriter(Paths.get(path),
+                                                        StandardOpenOption.CREATE,
+                                                        StandardOpenOption.APPEND))
+            {
+
 
                 StatefulBeanToCsv<Mail> beanToCsv = new StatefulBeanToCsvBuilder<Mail>(writer)
-                        //.withQuotechar(CSVWriter.NO_QUOTE_CHARACTER)
                         .withEscapechar('\\')
                         .build();
 
                 beanToCsv.write(m);
-                writer.close();
+
             }catch (Exception e) {
-                e.printStackTrace();
+                throw new InternalError(e.getMessage());
             } finally {
                 writeLock.unlock();
             }
@@ -185,53 +187,34 @@ public class Mailboxes {
 
         private void deleteMail(int mailID){
             writeLock.lock();
-            List<Mail> tempMailList = new ArrayList<>();
+
+            List<String> tempMailList = new ArrayList<>();
             try {
-                Reader reader = Files.newBufferedReader(Paths.get(path));
+                BufferedReader br = new BufferedReader(new FileReader(path));
+                String currentLine = "";
 
-                // Ignores empty lines from the input
-                CsvToBeanFilter ignoreEmptyLines = strings -> {
-                    for (String one : strings) {
-                        if (one != null && one.length() > 0) {
-                            return true;
-                        }
-                    }
-                    return false;
-                };
-
-
-                CsvToBean<Mail> csvToBean = new CsvToBeanBuilder<Mail>(reader)
-                        .withType(Mail.class)
-                        .withIgnoreLeadingWhiteSpace(true)
-                        .withFilter(ignoreEmptyLines)
-                        .withEscapeChar('\0')
-                        .build();
-
-                Iterator<Mail> csvMailIterator = csvToBean.iterator();
-
+                // Remove the mail
+                int i = -1;
                 int deletedIndex = -1;
-                while(csvMailIterator.hasNext()){
-                    deletedIndex++;
-                    Mail m = csvMailIterator.next();
-                    if(m.getID() != mailID){
-                        tempMailList.add(m);
+                while ((currentLine = br.readLine()) != null) {
+                    i++;
+                    if(getIDFromLine(currentLine) != mailID){
+                        tempMailList.add(currentLine);
+                        deletedIndex = i;
                     }
+
+                }
+                br.close();
+
+                BufferedWriter bw = new BufferedWriter(new FileWriter(path));
+
+                for (String mail : tempMailList){
+                    bw.write(mail + System.lineSeparator());
                 }
 
-                reader.close();
+                bw.close();
 
-                System.out.println(tempMailList);
-
-                Writer writer = Files.newBufferedWriter(Paths.get(path));
-
-                StatefulBeanToCsv<Mail> beanToCsv = new StatefulBeanToCsvBuilder<Mail>(writer)
-                        .withEscapechar('\0')
-                        .build();
-
-                beanToCsv.write(tempMailList);
-
-                writer.close();
-                if(deletedIndex < SKIP_LINES.intValue()){
+                if(deletedIndex != -1 && deletedIndex < SKIP_LINES.intValue()){
                     SKIP_LINES.decrementAndGet();
                 }
 
@@ -240,7 +223,7 @@ public class Mailboxes {
                 //  altrimenti                              ==>    nulla
 
             }catch (Exception e) {
-                e.printStackTrace();
+                throw new InternalError();
             } finally {
                 writeLock.unlock();
             }
@@ -257,11 +240,19 @@ public class Mailboxes {
         @Override
         public String readLine() throws IOException {
             String line = super.readLine();
-            return line.replace("\\n", "\n");
+            if(line != null)
+                return line.replace("\\n", "\n");
+            return null;
         }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    // Get the ID by matching the first value inside double quotes
+    private static int getIDFromLine(String line){
+        Matcher m = Pattern.compile("(?<=\")([^\"]+)(?=\")").matcher(line);
+        m.find();
+        return Integer.parseInt(m.group(1));
+    }
 
 }

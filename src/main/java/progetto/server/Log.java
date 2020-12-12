@@ -1,45 +1,50 @@
 package progetto.server;
 
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import progetto.common.Request;
-import progetto.common.Response;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class Log {
-    Request request;
-    Response response;
+    private final static DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
+    private StringProperty dateTime = new SimpleStringProperty();
+    private StringProperty requester = new SimpleStringProperty();
+    private ObjectProperty<Request> request = new SimpleObjectProperty<>();
+    //private StringProperty status = new SimpleStringProperty();
+    private ObjectProperty<ImageView> status = new SimpleObjectProperty<>();
 
-    public Log(Request request){
-        this.request = request;
-        this.response = null;
+    public Log(String requester, Request request, ImageView image){
+        setLocalDateTime(LocalDateTime.now().format(formatter));
+        setRequester(requester);
+        setRequest(request);
+        setStatus(image);
     }
 
-    public Log(Response response, Request request){
-        this.request = request;
-        this.response = response;
-    }
+    public StringProperty dateTimeProperty() { return dateTime; }
+    public void setLocalDateTime(String localDateTime) { dateTimeProperty().setValue(localDateTime); }
+    public String getLocalDateTime() { return dateTimeProperty().get(); }
 
-    public String logText(){
-        if(response == null){
-            return request.toString();
-        } else {
-            StringBuilder text = new StringBuilder();
-            switch (response.getCode()){
-                case Response.OK:{
-                    text.append("SUCCESSFULL: ").append(request.toString());
-                    break;
-                }
+    public StringProperty requesterProperty() { return requester; }
+    public void setRequester(String requester) { requesterProperty().setValue(requester); }
+    public String getRequester() { return requesterProperty().get(); }
 
-                case Response.ADDRESS_NOT_FOUND:{
-                    text.append("ADDRESS NOT FOUND: ").append(request.toString());
-                    break;
-                }
+    public ObjectProperty<Request> requestProperty() { return request; }
+    public void setRequest(Request request) { requestProperty().setValue(request); }
+    public Request getRequest() { return requestProperty().get(); }
 
-                default:{
-                    text.append("BAD REQUEST: ").append(request.toString());
-                }
-            }
+    //public StringProperty statusProperty() { return status; }
+    //public void setStatus(String text) { statusProperty().setValue(text); }
+    //public String getStatus() { return statusProperty().get(); }
 
-            return text.toString();
-        }
-    }
+    public ObjectProperty<ImageView> statusProperty() { return status; }
+    public void setStatus(ImageView image) { statusProperty().setValue(image); }
+    public ImageView getStatus() { return statusProperty().get(); }
+
 }

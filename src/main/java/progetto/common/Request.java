@@ -38,42 +38,43 @@ public class Request implements Serializable {
 
     @Override
     public String toString() {
-        StringBuilder text = new StringBuilder();
+        String text = null;
 
-        text.append(getAddress() != null ? getAddress() : "UNKNOWN");
         switch (getType()) {
             case Request.GET_FULL_MAILLIST: {
-                text.append(": Connection and FULL MAILLIST ");
+                text = "FULL MAILLIST ";
                 break;
             }
 
             case Request.UPDATE_MAILLIST: {
-                text.append(": Connection and INCREMENTAL MAILLIST ");
+                text = "INCREMENTAL MAILLIST ";
                 break;
             }
 
             case Request.SEND: {
                 Mail m = getBody();
-                text.append(": SEND MAIL request to ");
+                text = "SEND MAIL to ";
+                StringBuilder recipients = new StringBuilder();
                 for (String recipient : m.getRecipients()) {
-                    text.append(recipient).append(", ");
+                    recipients.append(recipient).append(", ");
                 }
-                text.deleteCharAt(text.length() - 1);
+                recipients.deleteCharAt(recipients.length() - 1);
+                text += recipients;
                 break;
             }
 
             case Request.DELETE: {
                 Mail m = getBody();
-                text.append(": DELETE MAIL request of MailID: ").append(m.getID());
+                text = "DELETE MAIL with MailID: " + m.getID();
                 break;
             }
 
             default: {
-                text.append(": BAD REQUEST");
+                text = "BAD REQUEST";
                 break;
             }
         }
 
-        return text.toString();
+        return text;
     }
 }

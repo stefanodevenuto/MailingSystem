@@ -65,6 +65,10 @@ public class Requester {
         alertType.setValue(Alert.AlertType.INFORMATION);
 
         getFullMailList.setOnFailed(workerStateEvent -> {
+            if(updateMailListTask != null){
+                updateMailListTask.cancel();
+            }
+
             Throwable exc = getFullMailList.getException();
 
             if (exc instanceof ConnectException) {
@@ -114,7 +118,6 @@ public class Requester {
             newBtn.setDisable(false);
 
             System.out.println("IS null?: " + (updateMailListTask == null));
-            // TODO: non funziona questo
             if(updateMailListTask != null){
                 updateMailListTask.cancel();
             }
