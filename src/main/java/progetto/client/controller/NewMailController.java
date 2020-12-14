@@ -1,5 +1,7 @@
 package progetto.client.controller;
 
+import javafx.animation.Transition;
+import javafx.animation.TranslateTransition;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.IntegerBinding;
 import javafx.beans.value.ChangeListener;
@@ -10,8 +12,11 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.RowConstraints;
+import javafx.scene.transform.Translate;
+import javafx.util.Duration;
 import progetto.client.model.Mailbox;
 import progetto.common.Mail;
 
@@ -27,7 +32,13 @@ public class NewMailController {
     private HashMap<String, Pane> screenMap;
     private BorderPane root;
 
+    private TranslateTransition hideGridPane;
+    private boolean showed = true;
+
     private static final int LIST_CELL_HEIGHT = 24;
+
+    @FXML
+    private GridPane gridPane;
 
     @FXML
     private TextField currentTitle;
@@ -48,7 +59,7 @@ public class NewMailController {
     public void handleSendButton(ActionEvent actionEvent) {
         mailbox.getCurrentMail().setSender(mailbox.getAddress());
         mailbox.getCurrentMail().setDateOfDispatch(LocalDate.now());
-        requester.sendCurrentMail();
+        requester.sendCurrentMail(this);
     }
 
 
@@ -71,9 +82,6 @@ public class NewMailController {
                 mailbox.getCurrentMail().setRecipients(new ArrayList<>(Arrays.asList(recipients)));
 
                 System.out.println(Arrays.toString(recipients));
-
-            }else{
-                System.out.println("2");
             }
         };
 
@@ -105,8 +113,9 @@ public class NewMailController {
                         System.out.println("Arrivo da una Forward/New");
                         currentRecipientsTextField.setVisible(true);
                         currentRecipientsListView.setVisible(false);
+
                     } else {
-                        //System.out.println("Arrivo da una Reply/Reply All: " + newMail.getRecipients());
+                        System.out.println("Arrivo da una Reply/Reply All: " + newMail.getRecipients());
                         IntegerBinding recipientsSize = Bindings.size(newMail.recipientsProperty()).multiply(LIST_CELL_HEIGHT);
 
                         currentRecipientsListView.minHeightProperty().bind(recipientsSize);
@@ -125,6 +134,25 @@ public class NewMailController {
                 System.out.println("CAMBIATO DA NEW: " + mailbox.getCurrentMail());
             }
         });
+
+        hideGridPane = new TranslateTransition(Duration.millis(250), gridPane);
+        hideGridPane.setByX(800.0);
+        hideGridPane.setOnFinished(event -> showed = false);
+    }
+
+    public void show(){
+        System.out.println("Showed show: " + showed);
+        if(!showed){
+            gridPane.setTranslateX(0);
+            showed = true;
+        }
+    }
+
+    public void hide(){
+        System.out.println("Showed hide: " + showed);
+        if(showed){
+            hideGridPane.play();
+        }
     }
 
     /*private void bindBidirectionalAll(StringProperty titleProperty, StringProperty senderProperty,

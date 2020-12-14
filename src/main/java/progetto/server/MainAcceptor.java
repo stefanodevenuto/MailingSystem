@@ -17,12 +17,13 @@ public class MainAcceptor extends Application {
     ExecutorService executors = Executors.newFixedThreadPool(MAX_THREADS);
 
     @Override
-    public void start(Stage primaryStage) throws Exception{
-        BorderPane root = new BorderPane();
+    public void start(Stage primaryStage) throws Exception{        BorderPane root = new BorderPane();
         FXMLLoader serverLogLoader = new FXMLLoader(getClass().getResource("/progetto.server/logsTableView.fxml"));
         root.setCenter(serverLogLoader.load());
 
         ServerLogController serverLogController = serverLogLoader.getController();
+
+        //System.out.println(getClass().getResource("/progetto/server/mailboxes/users.txt").getPath());
 
         Mailboxes mailboxes = new Mailboxes("C:\\Users\\stefa\\Desktop\\users.txt");
         serverLogController.initController(mailboxes, executors);

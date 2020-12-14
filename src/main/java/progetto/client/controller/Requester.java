@@ -9,6 +9,7 @@ import javafx.concurrent.Task;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
+import javafx.scene.layout.GridPane;
 import javafx.util.Duration;
 
 import progetto.client.model.Mailbox;
@@ -22,10 +23,14 @@ import java.io.ObjectOutputStream;
 import java.net.ConnectException;
 import java.net.Socket;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Requester {
     private final static int MAX_TRIES = 10;
     private static final String connectionError = "Reconnection try number: ";
+    public static final Pattern EMAIL_ADDRESS_REGEX =
+            Pattern.compile("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,6}$", Pattern.CASE_INSENSITIVE);
 
     private final String host;
     private final int port;
@@ -56,13 +61,21 @@ public class Requester {
      * Set (including the logged address) and progressively update the MailList contained in the Model
      * @param givenMailAddress the mail address inserted by the user
      * @param mailListView the ListView where the result will be visualized
-     * @param newBtn the button to create bew email, in order to make it usable in case of success
+     * @param newBtn the button used to create a new email, in order to make it usable in case of success
      */
     public void getAndUpdateMailList(String givenMailAddress, ListView<Mail> mailListView, Button newBtn) {
         GetFullMailList getFullMailList = new GetFullMailList(givenMailAddress);
         System.out.println("Current: " + (updateMailListTask == null));
         tries = 0;
         alertType.setValue(Alert.AlertType.INFORMATION);
+
+        if(!validate(givenMailAddress)) {
+            Alert alert = informationAlert("Wrong email");
+            alert.setContentText("Please insert a valid mail address!");
+
+            alert.showAndWait();
+            return;
+        }
 
         getFullMailList.setOnFailed(workerStateEvent -> {
             if(updateMailListTask != null){
@@ -71,7 +84,7 @@ public class Requester {
 
             Throwable exc = getFullMailList.getException();
 
-            if (exc instanceof ConnectException) {
+            if (exc instanceof IOException) {
                 tries++;
                 message.set(connectionError + tries);
 
@@ -117,12 +130,12 @@ public class Requester {
 
             newBtn.setDisable(false);
 
-            System.out.println("IS null?: " + (updateMailListTask == null));
+            // Cancel the previous update MailList task if re-logged
             if(updateMailListTask != null){
                 updateMailListTask.cancel();
             }
 
-            // Start the update mail list service
+            // Start the new update mail list service
             getUpdatedMailList(mailListView);
         });
 
@@ -175,7 +188,7 @@ public class Requester {
 
             failedMailList = true;
 
-            if (exc instanceof ConnectException) {
+            if (exc instanceof IOException) {
 
                 tries++;
                 message.set(connectionError + tries);
@@ -254,11 +267,14 @@ public class Requester {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    public void deleteCurrentMail() {
+    public void deleteCurrentMail(SingleMailController singleMailController) {
 
         DeleteCurrentMail deleteCurrentMail = new DeleteCurrentMail();
 
-        deleteCurrentMail.setOnSucceeded(workerStateEvent -> mailbox.removeCurrentMail());
+        deleteCurrentMail.setOnSucceeded(workerStateEvent -> {
+            mailbox.removeCurrentMail();
+            singleMailController.hide();;
+        });
 
         deleteCurrentMail.setOnFailed(workerStateEvent -> {
             Throwable exc = deleteCurrentMail.getException();
@@ -303,13 +319,34 @@ public class Requester {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    public void sendCurrentMail() {
+    public void sendCurrentMail(NewMailController newMailController) {
         SendCurrentMail sendCurrentMail = new SendCurrentMail();
 
+        if(mailbox.getCurrentMail().getRecipients().isEmpty() || mailbox.getCurrentMail().getTitle() == null){
+            Alert alert = informationAlert("Wrong email");
+            alert.setContentText("Mail addresses and Title can't be empty!");
+
+            alert.showAndWait();
+            return;
+        }
+
+
+        for(String recipient : mailbox.getCurrentMail().getRecipients()){
+            if(!validate(recipient)) {
+                Alert alert = informationAlert("Wrong email");
+                alert.setContentText("Please insert valid mail addresses!");
+
+                alert.showAndWait();
+                return;
+            }
+        }
+
         sendCurrentMail.setOnSucceeded(workerStateEvent -> {
-            Alert notConnected = informationAlert("Success");
-            notConnected.setContentText("Mail sent successfully!");
-            notConnected.show();
+            Alert success = informationAlert("Success");
+            success.setContentText("Mail sent successfully!");
+            success.show();
+
+            newMailController.hide();
         });
 
         sendCurrentMail.setOnFailed(workerStateEvent -> {
@@ -374,6 +411,11 @@ public class Requester {
             fromServer.close();
     }
 
+    private static boolean validate(String email) {
+        Matcher matcher = EMAIL_ADDRESS_REGEX.matcher(email);
+        return matcher.find();
+    }
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private List<Mail> handleResponse(Object o) throws InternalError, AddressNotFound {
@@ -410,7 +452,7 @@ public class Requester {
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /*
-     * A series of useful static method simplify the generation of Alerts
+     * A series of useful static methods that simplifies the generation of Alerts
      */
     private static Alert informationAlert(String title){
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
@@ -429,7 +471,7 @@ public class Requester {
     }
 
     private static Alert warningAlert(String title){
-        Alert alert = new Alert(Alert.AlertType.ERROR);
+        Alert alert = new Alert(Alert.AlertType.WARNING);
         alert.setTitle(title);
         alert.setHeaderText(null);
 

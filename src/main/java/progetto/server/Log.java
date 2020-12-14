@@ -18,9 +18,9 @@ public class Log {
     private StringProperty requester = new SimpleStringProperty();
     private ObjectProperty<Request> request = new SimpleObjectProperty<>();
     //private StringProperty status = new SimpleStringProperty();
-    private ObjectProperty<ImageView> status = new SimpleObjectProperty<>();
+    private ObjectProperty<Image> status = new SimpleObjectProperty<>();
 
-    public Log(String requester, Request request, ImageView image){
+    public Log(String requester, Request request, Image image){
         setLocalDateTime(LocalDateTime.now().format(formatter));
         setRequester(requester);
         setRequest(request);
@@ -43,8 +43,8 @@ public class Log {
     //public void setStatus(String text) { statusProperty().setValue(text); }
     //public String getStatus() { return statusProperty().get(); }
 
-    public ObjectProperty<ImageView> statusProperty() { return status; }
-    public void setStatus(ImageView image) { statusProperty().setValue(image); }
-    public ImageView getStatus() { return statusProperty().get(); }
+    public ObjectProperty<Image> statusProperty() { return status; }
+    public void setStatus(Image image) { status.set(image); }
+    public Image getStatus() { return status.get(); }
 
 }

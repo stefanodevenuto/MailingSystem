@@ -80,7 +80,7 @@ public class Mailboxes {
 
     private class Mailbox {
         private AtomicInteger SKIP_LINES = new AtomicInteger(0); // TODO: valutare se assegnare questo alla singola connessione
-                                                                          // per evitare problemi sulla connessione dello stesso account contemporaneamente
+        // per evitare problemi sulla connessione dello stesso account contemporaneamente
         private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
         private final Lock readLock = readWriteLock.readLock();
         private final Lock writeLock = readWriteLock.writeLock();
@@ -167,8 +167,8 @@ public class Mailboxes {
 
             writeLock.lock();
             try(Writer writer = Files.newBufferedWriter(Paths.get(path),
-                                                        StandardOpenOption.CREATE,
-                                                        StandardOpenOption.APPEND))
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.APPEND))
             {
 
 

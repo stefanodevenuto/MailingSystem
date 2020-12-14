@@ -1,10 +1,12 @@
 module progetto {
     requires javafx.controls;
     requires javafx.fxml;
+    requires javafx.base;
+    requires javafx.graphics;
     requires opencsv;
     requires java.sql; // Required by OpenCSV
 
-    opens progetto.server to javafx.fxml;
+    opens progetto.server to javafx.fxml, javafx.graphics, javafx.base;
 
     opens progetto.client to javafx.fxml;
     opens progetto.client.controller to javafx.fxml;

@@ -1,5 +1,6 @@
 package progetto.client.controller;
 
+import javafx.animation.TranslateTransition;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.IntegerBinding;
 import javafx.beans.property.SimpleObjectProperty;
@@ -11,6 +12,8 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.RowConstraints;
+import javafx.scene.transform.Translate;
+import javafx.util.Duration;
 import progetto.client.model.Mailbox;
 import progetto.common.Mail;
 import javafx.beans.value.ChangeListener;
@@ -29,6 +32,10 @@ public class SingleMailController {
     private HashMap<String, Pane> screenMap;
     private BorderPane root;
     private static final int LIST_CELL_HEIGHT = 24;
+
+    private TranslateTransition hideGridPane;
+    private boolean showed = true;
+    private NewMailController newMailController;
 
     @FXML
     private GridPane gridPane;
@@ -50,7 +57,7 @@ public class SingleMailController {
 
     @FXML
     public void handleDeleteButton(ActionEvent actionEvent) {
-        requester.deleteCurrentMail();
+        requester.deleteCurrentMail(this);
     }
 
     @FXML
@@ -65,6 +72,7 @@ public class SingleMailController {
         mailbox.setCurrentMail(m);
 
         root.setRight(screenMap.get("newMail"));
+        newMailController.show();
         System.out.println("Sto settando come recipients: " + newRecipient);
 
     }
@@ -84,6 +92,7 @@ public class SingleMailController {
         mailbox.setCurrentMail(m);
 
         root.setRight(screenMap.get("newMail"));
+        newMailController.show();
         System.out.println("Sto settando come recipients: " + newRecipients);
 
     }
@@ -93,14 +102,15 @@ public class SingleMailController {
         Mail m = new Mail();
 
         m.setText(mailbox.getCurrentMail().getText());
-        //newMail.setRecipients(new ArrayList<>());
+        m.setRecipients(new ArrayList<>());
 
         mailbox.setCurrentMail(m);
 
         root.setRight(screenMap.get("newMail"));
+        newMailController.show();
     }
 
-    public void initController(Mailbox mailbox, HashMap<String, Pane> screenMap, BorderPane root, Requester requester) {
+    public void initController(Mailbox mailbox, HashMap<String, Pane> screenMap, BorderPane root, Requester requester, NewMailController newMailController) {
         // ensure model is only set once:
         if (this.mailbox != null) {
             throw new IllegalStateException("Model can only be initialized once");
@@ -110,6 +120,7 @@ public class SingleMailController {
         this.screenMap = screenMap;
         this.root = root;
         this.requester = requester;
+        this.newMailController = newMailController;
 
         this.mailbox.currentMailProperty().addListener(new ChangeListener() {
             @Override
@@ -136,17 +147,33 @@ public class SingleMailController {
                             newMail.recipientsProperty(), newMail.textProperty());
 
                     // In order to make the Recipients' ListView list-length tall
-                    // TODO: creare un punto dove diventa solo più scrollable
-
                     currentRecipients.minHeightProperty().bind(recipientsSize);
                     currentRecipients.prefHeightProperty().bind(recipientsSize);
-
                     recipientsRow.minHeightProperty().bind(recipientsSize);
                     recipientsRow.prefHeightProperty().bind(recipientsSize);
 
                 }
             }
         });
+
+        hideGridPane = new TranslateTransition(Duration.millis(250), gridPane);
+        hideGridPane.setByX(800.0);
+        hideGridPane.setOnFinished(event -> showed = false);
+    }
+
+    public void show(){
+        System.out.println("Showed show: " + showed);
+        if(!showed){
+            gridPane.setTranslateX(0);
+            showed = true;
+        }
+    }
+
+    public void hide(){
+        System.out.println("Showed hide: " + showed);
+        if(showed){
+            hideGridPane.play();
+        }
     }
 
     private void bindAll(StringProperty titleProperty, StringProperty senderProperty,

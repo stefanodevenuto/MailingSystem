@@ -14,6 +14,7 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.*;
 import java.util.regex.Matcher;
@@ -27,9 +28,9 @@ public class LoginAndMailboxController {
 
     private HashMap<String, Pane> screenMap;
     private BorderPane root;
+    private NewMailController newMailController;
+    private SingleMailController singleMailController;
 
-    public static final Pattern EMAIL_ADDRESS_REGEX =
-            Pattern.compile("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,6}$", Pattern.CASE_INSENSITIVE);
     public static final int MAX_TRIES = 10;
 
     @FXML
@@ -41,7 +42,8 @@ public class LoginAndMailboxController {
     @FXML
     private Button newBtn;
 
-    public void initController(Mailbox mailbox, HashMap<String, Pane> screenMap, BorderPane root, Requester requester) {
+    public void initController(Mailbox mailbox, HashMap<String, Pane> screenMap, BorderPane root, Requester requester,
+                               SingleMailController singleMailController, NewMailController newMailController) {
         // ensure model is only set once
         if (this.mailbox != null) {
             throw new IllegalStateException("Model can only be initialized once");
@@ -51,15 +53,19 @@ public class LoginAndMailboxController {
         this.screenMap = screenMap;
         this.root = root;
         this.requester = requester;
+        this.newMailController = newMailController;
+        this.singleMailController= singleMailController;
     }
 
     @FXML
     public void handleNewButton(ActionEvent actionEvent) {
         Mail newMail = new Mail();
+        newMail.setRecipients(new ArrayList<>());
 
         mailbox.setCurrentMail(newMail);
 
         root.setRight(screenMap.get("newMail"));
+        newMailController.show();
     }
 
     @FXML
@@ -72,12 +78,16 @@ public class LoginAndMailboxController {
             @Override
             public void updateItem(Mail mail, boolean empty) {
                 super.updateItem(mail, empty);
+                final String newMailCssClass = "new-mail";
                 if (empty) {
                     setText("\n\n\n");
+                    getStyleClass().removeAll(newMailCssClass);
                 } else {
-                    String newMailCssClass = "new-mail";
+
                     if(mail.getNewMail()){
                         getStyleClass().add(newMailCssClass);
+                    } else {
+                        getStyleClass().removeAll(newMailCssClass);
                     }
 
                     selectedProperty().addListener((observableValue, aBoolean, notSelected) -> {
@@ -102,8 +112,11 @@ public class LoginAndMailboxController {
     }
 
     @FXML
-    public void handleMouseClicked(MouseEvent arg0) {
+    public void handleMouseClicked(MouseEvent click) {
+        singleMailController.show();
+
         Mail m = mailListView.getSelectionModel().getSelectedItem();
+
         if(m != null){
             m.setNewMail(false);
             System.out.println("Clicked: " + m.getID() + " " + m.toString());
@@ -113,10 +126,5 @@ public class LoginAndMailboxController {
 
             root.setRight(screenMap.get("singleMail"));
         }
-    }
-
-    private static boolean validate(String email) {
-        Matcher matcher = EMAIL_ADDRESS_REGEX.matcher(email);
-        return matcher.find();
     }
 }

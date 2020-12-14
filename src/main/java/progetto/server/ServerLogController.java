@@ -14,6 +14,7 @@ import progetto.common.Response;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutorService;
@@ -22,9 +23,9 @@ public class ServerLogController {
     private Mailboxes mailboxes;
     private ExecutorService executors;
 
-    private static FileInputStream load;
-    private static FileInputStream tick;
-    private static FileInputStream cross;
+    private static Image load;
+    private static Image tick;
+    private static Image cross;
 
     @FXML
     private ListView<Log> logListView;
@@ -42,7 +43,7 @@ public class ServerLogController {
     private TableColumn<Log, Request> requestColumn;
 
     @FXML
-    private TableColumn<Log, ImageView> statusColumn;
+    private TableColumn<Log, Image> statusColumn;
 
     public void initController(Mailboxes mailboxes, ExecutorService executors) {
 
@@ -54,12 +55,10 @@ public class ServerLogController {
         this.mailboxes = mailboxes;
         this.executors = executors;
 
-
-
         try {
-            load = new FileInputStream("C:\\Users\\stefa\\Desktop\\load.jpg");
-            cross = new FileInputStream("C:\\Users\\stefa\\Desktop\\cross.jpg");
-            tick = new FileInputStream("C:\\Users\\stefa\\Desktop\\tick.jpg");
+            load = new Image(new FileInputStream("C:\\Users\\stefa\\Desktop\\load.jpg"));
+            cross = new Image(new FileInputStream("C:\\Users\\stefa\\Desktop\\cross.jpg"));
+            tick = new Image(new FileInputStream("C:\\Users\\stefa\\Desktop\\tick.jpg"));
         } catch (Exception e){
             e.printStackTrace();
         }
@@ -72,14 +71,27 @@ public class ServerLogController {
         dateColumn.setCellValueFactory(date -> date.getValue().dateTimeProperty());
         requesterColumn.setCellValueFactory(requester -> requester.getValue().requesterProperty());
         requestColumn.setCellValueFactory(request -> request.getValue().requestProperty());
-        statusColumn.setCellValueFactory(date -> date.getValue().statusProperty());
 
-        statusColumn.setCellFactory(new Callback<TableColumn<Log, ImageView>, TableCell<Log, ImageView>>() {
-            @Override
-            public TableCell<Log, ImageView> call(TableColumn<Log, ImageView> logImageViewTableColumn) {
-                return new TableCell<>();
-            }
+        statusColumn.setCellFactory(logImageViewTableColumn -> {
+            final ImageView imageView = new ImageView();
+            final StringBuilder text = new StringBuilder("Ciao");
+            imageView.setFitHeight(24);
+            imageView.setFitWidth(24);
+
+            //Set up the Table
+            TableCell<Log, Image> cell = new TableCell<>() {
+                public void updateItem(Image item, boolean empty) {
+                    imageView.setImage(item);
+                    text.append("OK");
+                }
+            };
+            // Attach the imageview to the cell
+            cell.setGraphic(imageView);
+            cell.setText(text.toString());
+            return cell;
         });
+
+        statusColumn.setCellValueFactory(status -> status.getValue().statusProperty()/*new PropertyValueFactory<>("status")*/);
 
         // Show the title of the Mail for each one in the ObservableList
         /*logListView.setCellFactory(lv -> new ListCell<>() {
@@ -96,16 +108,19 @@ public class ServerLogController {
 
         Runnable startListener = new StartListener();
         this.executors.execute(startListener);
+
     }
 
 
     public class StartListener implements Runnable{
 
+        private ServerSocket acceptor = null;
+
         @Override
         public void run() {
             try {
-                ServerSocket acceptor = new ServerSocket(4444);
-                while(true) {
+                acceptor = new ServerSocket(4444);
+                while(true) { // TODO: diventa while(!interrupted)
                     Socket client = acceptor.accept();
                     //System.out.println("Accettato");
 
@@ -116,12 +131,17 @@ public class ServerLogController {
                 e.printStackTrace();
             }
         }
+
+
+        public void closeSocket() throws IOException {
+            if(acceptor != null)
+                acceptor.close();
+        }
     }
 
     private class RequestsHandler implements Runnable {
         private final Socket client;
         private final ExecutorService executorService;
-        private int requestID = 0;
 
         private RequestsHandler(Socket client, ExecutorService executorService) {
             this.client = client;
@@ -145,7 +165,7 @@ public class ServerLogController {
 
                 Request r = (Request) request;
 
-                Log log = new Log(r.getAddress(), r, new ImageView(new Image(load)));
+                Log log = new Log(r.getAddress(), r, load);
 
                 switch (r.getType()) {
                     case Request.UPDATE_MAILLIST:
@@ -282,7 +302,7 @@ public class ServerLogController {
             Response response = new Response(Response.OK);
             toClient.writeObject(response);
 
-            Platform.runLater(() -> log.setStatus(new ImageView(new Image(tick))));
+            Platform.runLater(() -> log.setStatus(tick));
         } catch (IOException e){
             // TODO: client disconnected / problems related with connection
             e.printStackTrace();
@@ -294,7 +314,7 @@ public class ServerLogController {
             Response response = new Response(Response.OK, mailList);
             toClient.writeObject(response);
 
-            Platform.runLater(() -> log.setStatus(new ImageView(new Image(tick))));
+            Platform.runLater(() -> log.setStatus(tick));
         } catch (IOException e){
             // TODO: client disconnected / problems related with connection
             e.printStackTrace();
@@ -306,7 +326,7 @@ public class ServerLogController {
             Response response = new Response(Response.INTERNAL_ERROR);
             toClient.writeObject(response);
 
-            Platform.runLater(() -> log.setStatus(new ImageView(new Image(cross))));
+            Platform.runLater(() -> log.setStatus(cross));
         } catch (IOException e){
             // TODO: client disconnected / problems related with connection
             e.printStackTrace();
@@ -319,7 +339,7 @@ public class ServerLogController {
             Response response = new Response(Response.ADDRESS_NOT_FOUND, address);
             toClient.writeObject(response);
 
-            Platform.runLater(() -> log.setStatus(new ImageView(new Image(cross))));
+            Platform.runLater(() -> log.setStatus(cross));
         } catch (IOException e){
             // TODO: client disconnected / problems related with connection
             e.printStackTrace();
@@ -355,8 +375,9 @@ public class ServerLogController {
             setMinHeight(24);
         }
 
+
         @Override
-        protected void updateItem(Log log, boolean empty) {
+        protected void updateItem(ImageView log, boolean empty) {
             super.updateItem(log, empty);
 
             if (empty || log == null) {
@@ -364,7 +385,7 @@ public class ServerLogController {
                 image.setImage(null);
             } else {
                 // set image and text for non-empty cell
-                image.setImage(log.requestProperty());
+                image.setImage(log.getImage());
             }
         }
     }*/

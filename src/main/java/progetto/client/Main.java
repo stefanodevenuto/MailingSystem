@@ -13,7 +13,6 @@ import progetto.client.controller.SingleMailController;
 import progetto.client.model.Mailbox;
 
 import java.util.HashMap;
-import java.util.concurrent.*;
 
 public class Main extends Application {
 
@@ -40,13 +39,14 @@ public class Main extends Application {
 
         // Css
         Scene scene = new Scene(root);
-        scene.getStylesheets().add(Main.class.getResource("/progetto.client/singleMail.css").toExternalForm());
+        scene.getStylesheets().add(Main.class.getResource("/progetto.client/style.css").toExternalForm());
 
         // Instantiate a new Model and initialize the controllers
         Mailbox mailbox = new Mailbox();
         Requester requester = new Requester("localhost", 4444, mailbox);
-        loginAndMailboxController.initController(mailbox, screenMap, root, requester);
-        singleMailController.initController(mailbox, screenMap, root, requester);
+
+        loginAndMailboxController.initController(mailbox, screenMap, root, requester, singleMailController, newMailController);
+        singleMailController.initController(mailbox, screenMap, root, requester, newMailController);
         newMailController.initController(mailbox, screenMap, root, requester);
 
         primaryStage.setTitle("Client");
