@@ -43,9 +43,12 @@ public class ServerLogController {
     private TableColumn<Log, Request> requestColumn;
 
     @FXML
-    private TableColumn<Log, Image> statusColumn;
+    private TableColumn<Log, Image> statusImageColumn;
 
-    public void initController(Mailboxes mailboxes, ExecutorService executors) {
+    @FXML
+    private TableColumn<Log, String> statusTextColumn;
+
+    public StartListener initController(Mailboxes mailboxes, ExecutorService executors) {
 
         // ensure model is only set once
         if (this.mailboxes != null) {
@@ -56,9 +59,9 @@ public class ServerLogController {
         this.executors = executors;
 
         try {
-            load = new Image(new FileInputStream("C:\\Users\\stefa\\Desktop\\load.jpg"));
-            cross = new Image(new FileInputStream("C:\\Users\\stefa\\Desktop\\cross.jpg"));
-            tick = new Image(new FileInputStream("C:\\Users\\stefa\\Desktop\\tick.jpg"));
+            load = new Image(getClass().getResource("/progetto.server/load.jpg").toExternalForm());
+            cross = new Image(getClass().getResource("/progetto.server/cross.jpg").toExternalForm());
+            tick = new Image(getClass().getResource("/progetto.server/tick.jpg").toExternalForm());
         } catch (Exception e){
             e.printStackTrace();
         }
@@ -72,9 +75,8 @@ public class ServerLogController {
         requesterColumn.setCellValueFactory(requester -> requester.getValue().requesterProperty());
         requestColumn.setCellValueFactory(request -> request.getValue().requestProperty());
 
-        statusColumn.setCellFactory(logImageViewTableColumn -> {
+        statusImageColumn.setCellFactory(logImageViewTableColumn -> {
             final ImageView imageView = new ImageView();
-            final StringBuilder text = new StringBuilder("Ciao");
             imageView.setFitHeight(24);
             imageView.setFitWidth(24);
 
@@ -82,16 +84,15 @@ public class ServerLogController {
             TableCell<Log, Image> cell = new TableCell<>() {
                 public void updateItem(Image item, boolean empty) {
                     imageView.setImage(item);
-                    text.append("OK");
                 }
             };
             // Attach the imageview to the cell
             cell.setGraphic(imageView);
-            cell.setText(text.toString());
             return cell;
         });
 
-        statusColumn.setCellValueFactory(status -> status.getValue().statusProperty()/*new PropertyValueFactory<>("status")*/);
+        statusImageColumn.setCellValueFactory(status -> status.getValue().statusProperty()/*new PropertyValueFactory<>("status")*/);
+        statusTextColumn.setCellValueFactory(statusText -> statusText.getValue().statusTextProperty());
 
         // Show the title of the Mail for each one in the ObservableList
         /*logListView.setCellFactory(lv -> new ListCell<>() {
@@ -106,9 +107,10 @@ public class ServerLogController {
             }
         });*/
 
-        Runnable startListener = new StartListener();
+        StartListener startListener = new StartListener();
         this.executors.execute(startListener);
 
+        return startListener;
     }
 
 
@@ -122,12 +124,13 @@ public class ServerLogController {
                 acceptor = new ServerSocket(4444);
                 while(true) { // TODO: diventa while(!interrupted)
                     Socket client = acceptor.accept();
-                    //System.out.println("Accettato");
 
                     Runnable requestsHandler = new RequestsHandler(client, executors);
                     executors.execute(requestsHandler);
                 }
             } catch (IOException e) {
+                // Socket is closed
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
@@ -302,7 +305,10 @@ public class ServerLogController {
             Response response = new Response(Response.OK);
             toClient.writeObject(response);
 
-            Platform.runLater(() -> log.setStatus(tick));
+            Platform.runLater(() -> {
+                log.setStatus(tick);
+                log.setStatusText("Done");
+            });
         } catch (IOException e){
             // TODO: client disconnected / problems related with connection
             e.printStackTrace();
@@ -314,7 +320,10 @@ public class ServerLogController {
             Response response = new Response(Response.OK, mailList);
             toClient.writeObject(response);
 
-            Platform.runLater(() -> log.setStatus(tick));
+            Platform.runLater(() -> {
+                log.setStatus(tick);
+                log.setStatusText("Done");
+            });
         } catch (IOException e){
             // TODO: client disconnected / problems related with connection
             e.printStackTrace();
@@ -326,7 +335,10 @@ public class ServerLogController {
             Response response = new Response(Response.INTERNAL_ERROR);
             toClient.writeObject(response);
 
-            Platform.runLater(() -> log.setStatus(cross));
+            Platform.runLater(() -> {
+                log.setStatus(cross);
+                log.setStatusText("Internal Error");
+            });
         } catch (IOException e){
             // TODO: client disconnected / problems related with connection
             e.printStackTrace();
@@ -339,7 +351,10 @@ public class ServerLogController {
             Response response = new Response(Response.ADDRESS_NOT_FOUND, address);
             toClient.writeObject(response);
 
-            Platform.runLater(() -> log.setStatus(cross));
+            Platform.runLater(() -> {
+                log.setStatus(cross);
+                log.setStatusText("Address not found: " + address);
+            });
         } catch (IOException e){
             // TODO: client disconnected / problems related with connection
             e.printStackTrace();

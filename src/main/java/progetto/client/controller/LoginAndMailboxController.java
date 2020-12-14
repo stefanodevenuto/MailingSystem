@@ -104,10 +104,12 @@ public class LoginAndMailboxController {
             }
         });
 
-        // To immediately scroll to the bottom
-        mailListView.scrollTo(mailListView.getItems().size() - 1);
+        //mailListView.setItems(mailbox.currentMailListProperty());
 
         requester.getAndUpdateMailList(givenMailAddress, mailListView, newBtn);
+
+        // To immediately scroll to the bottom
+        mailListView.scrollTo(mailListView.getItems().size() - 1);
 
     }
 

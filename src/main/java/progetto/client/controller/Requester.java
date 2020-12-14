@@ -1,6 +1,7 @@
 package progetto.client.controller;
 
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.concurrent.ScheduledService;
@@ -20,7 +21,6 @@ import progetto.common.Response;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.net.ConnectException;
 import java.net.Socket;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -178,10 +178,13 @@ public class Requester {
         GetUpdatedMailList getUpdatedMailList = new GetUpdatedMailList();
 
         tries = 0;
+        SimpleBooleanProperty running = new SimpleBooleanProperty(true);
         alertType.setValue(Alert.AlertType.INFORMATION);
 
         getUpdatedMailList.setPeriod(Duration.seconds(3));
         getUpdatedMailList.setDelay(Duration.seconds(3));
+
+        getUpdatedMailList.restartOnFailureProperty().bind(running);
 
         getUpdatedMailList.setOnFailed(workerStateEvent -> {
             Throwable exc = getUpdatedMailList.getException();
@@ -203,18 +206,21 @@ public class Requester {
                 if (tries == MAX_TRIES) {
                     alertType.setValue(Alert.AlertType.ERROR);
                     message.set("The server is currently down: you can continue offline to look at your emails");
-                    reconnectionAlert.hide();
 
-                    getUpdatedMailList.cancel();
+                    //getUpdatedMailList.cancel();
+                    running.set(false);
+
                 }
             } else if(exc instanceof AddressNotFound){
                 wrongAddress(((AddressNotFound) exc).getAddress()).show();
             } else {
+                exc.printStackTrace();
                 internalError().show();
             }
         });
 
         getUpdatedMailList.setOnSucceeded(workerStateEvent -> {
+            tries = 0;
             List<Mail> result = getUpdatedMailList.getLastValue();
             if (result != null && !result.isEmpty()) {
                 if (failedMailList) {
@@ -279,7 +285,7 @@ public class Requester {
         deleteCurrentMail.setOnFailed(workerStateEvent -> {
             Throwable exc = deleteCurrentMail.getException();
 
-            if (exc instanceof ConnectException) {
+            if (exc instanceof IOException) {
                 Alert notConnected = errorAlert("Not connected");
                 notConnected.setContentText("The client is not connected: wait the reconnection process or " +
                         "redo the login process");
@@ -352,7 +358,7 @@ public class Requester {
         sendCurrentMail.setOnFailed(workerStateEvent -> {
             Throwable exc = sendCurrentMail.getException();
 
-            if (exc instanceof ConnectException) {
+            if (exc instanceof IOException) {
                 Alert notConnected = errorAlert("Not connected");
                 notConnected.setContentText("The client is not connected: wait the reconnection process or " +
                         "redo the login one");
@@ -363,6 +369,7 @@ public class Requester {
                         "The email was sent only to addresses before " + ((AddressNotFound) exc).getAddress());
                 wrongAddress.show();
             } else {
+                exc.printStackTrace();
                 internalError().show();
             }
         });

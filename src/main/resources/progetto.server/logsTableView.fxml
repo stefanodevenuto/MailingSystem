@@ -1,14 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.TableColumn?>
-<?import javafx.scene.control.TableView?>
-<?import javafx.scene.layout.AnchorPane?>
-<?import javafx.scene.layout.ColumnConstraints?>
-<?import javafx.scene.layout.GridPane?>
-<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
 
-
-<AnchorPane fx:controller="progetto.server.ServerLogController" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="539.0" prefWidth="894.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="539.0" prefWidth="894.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="progetto.server.ServerLogController">
    <children>
       <GridPane layoutX="1.0" layoutY="-2.0" prefHeight="539.0" prefWidth="894.0">
         <columnConstraints>
@@ -22,8 +17,9 @@
               <columns>
                   <TableColumn fx:id="dateColumn" minWidth="0.0" prefWidth="143.0" text="Date" />
                 <TableColumn fx:id="requesterColumn" prefWidth="176.0" text="User" />
-                <TableColumn fx:id="requestColumn" minWidth="0.0" prefWidth="434.0" text="Request" />
-                  <TableColumn fx:id="statusColumn" prefWidth="140.0" text="Status" />
+                <TableColumn fx:id="requestColumn" minWidth="0.0" prefWidth="316.0" text="Request" />
+                  <TableColumn fx:id="statusImageColumn" minWidth="0.0" prefWidth="34.0" />
+                  <TableColumn fx:id="statusTextColumn" prefWidth="224.0" />
               </columns>
             </TableView>
          </children>

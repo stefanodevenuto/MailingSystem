@@ -51,6 +51,7 @@ public class Main extends Application {
 
         primaryStage.setTitle("Client");
         primaryStage.setScene(scene);
+        primaryStage.setResizable(false);
         primaryStage.show();
     }
 

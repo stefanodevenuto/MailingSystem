@@ -10,18 +10,28 @@ public class Request implements Serializable {
 
     private String address;
     private int type;
+    private int counter;
     private Mail body;
 
     public Request(int type, String address) {
         this.type = type;
         this.address = address;
         this.body = null;
+        this.counter = -1;
     }
 
     public Request(int type, String address, Mail body) {
         this.type = type;
         this.address = address;
         this.body = body;
+        this.counter = -1;
+    }
+
+    public Request(int type, String address, int counter){
+        this.type = type;
+        this.address = address;
+        this.counter = counter;
+        this.body = null;
     }
 
     public int getType() {
@@ -34,6 +44,10 @@ public class Request implements Serializable {
 
     public Mail getBody() {
         return body;
+    }
+
+    public int getCounter() {
+        return counter;
     }
 
     @Override

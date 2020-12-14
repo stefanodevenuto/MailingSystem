@@ -25,10 +25,13 @@ import java.util.regex.Pattern;
 public class Mailboxes {
     private Map<String, Mailbox> mailboxList;
     private ObservableList<Log> logs = FXCollections.observableArrayList();
+    private String path;
 
     public Mailboxes(String path) throws IOException {
         mailboxList = new HashMap<>();
-        try(Scanner users = new Scanner(new File(path))) {
+        this.path = path;
+        String filePath = "users.txt";
+        try(Scanner users = new Scanner(new File(path + filePath))) {
             while (users.hasNextLine()){
                 String user = users.nextLine();
                 System.out.println(user);
@@ -45,7 +48,7 @@ public class Mailboxes {
     }
 
     private void newMailbox(String address) {
-        Mailbox m = new Mailbox(address);
+        Mailbox m = new Mailbox(path + address);
         mailboxList.put(address, m);
     }
 
@@ -88,8 +91,8 @@ public class Mailboxes {
         private final String path;
         private final AtomicInteger emailCounter = new AtomicInteger();
 
-        private Mailbox(String address) {
-            this.path = "C:\\Users\\stefa\\Desktop\\" + address + ".csv";
+        private Mailbox(String path) {
+            this.path = path + ".csv";
             try(BufferedReader br = new BufferedReader(new FileReader(path))) {
 
                 String lastLine = "";
