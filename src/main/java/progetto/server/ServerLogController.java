@@ -2,10 +2,9 @@ package progetto.server;
 
 import javafx.application.Platform;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.util.Callback;
+import progetto.client.model.Mailbox;
 import progetto.common.Mail;
 import javafx.fxml.FXML;
 import progetto.common.Request;
@@ -14,7 +13,6 @@ import progetto.common.Response;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketTimeoutException;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutorService;
@@ -22,13 +20,6 @@ import java.util.concurrent.ExecutorService;
 public class ServerLogController {
     private Mailboxes mailboxes;
     private ExecutorService executors;
-
-    private static Image load;
-    private static Image tick;
-    private static Image cross;
-
-    @FXML
-    private ListView<Log> logListView;
 
     @FXML
     private TableView<Log> logsTable;
@@ -58,17 +49,6 @@ public class ServerLogController {
         this.mailboxes = mailboxes;
         this.executors = executors;
 
-        try {
-            load = new Image(getClass().getResource("/progetto.server/load.jpg").toExternalForm());
-            cross = new Image(getClass().getResource("/progetto.server/cross.jpg").toExternalForm());
-            tick = new Image(getClass().getResource("/progetto.server/tick.jpg").toExternalForm());
-        } catch (Exception e){
-            e.printStackTrace();
-        }
-
-        // Set the entire MailList (ObservableList<Request>) to the ListView
-        //logListView.setItems(mailboxes.logsProperty());
-
         logsTable.setItems(mailboxes.logsProperty());
 
         dateColumn.setCellValueFactory(date -> date.getValue().dateTimeProperty());
@@ -94,19 +74,6 @@ public class ServerLogController {
         statusImageColumn.setCellValueFactory(status -> status.getValue().statusProperty()/*new PropertyValueFactory<>("status")*/);
         statusTextColumn.setCellValueFactory(statusText -> statusText.getValue().statusTextProperty());
 
-        // Show the title of the Mail for each one in the ObservableList
-        /*logListView.setCellFactory(lv -> new ListCell<>() {
-            @Override
-            public void updateItem(Log l, boolean empty) {
-                super.updateItem(l, empty);
-                if (empty) {
-                    setText(null);
-                } else {
-                    setText(l.logText());
-                }
-            }
-        });*/
-
         StartListener startListener = new StartListener();
         this.executors.execute(startListener);
 
@@ -122,7 +89,7 @@ public class ServerLogController {
         public void run() {
             try {
                 acceptor = new ServerSocket(4444);
-                while(true) { // TODO: diventa while(!interrupted)
+                while(true) {
                     Socket client = acceptor.accept();
 
                     Runnable requestsHandler = new RequestsHandler(client, executors);
@@ -167,45 +134,30 @@ public class ServerLogController {
                 }
 
                 Request r = (Request) request;
-
-                Log log = new Log(r.getAddress(), r, load);
+                Log log = new Log(r.getAddress(), r, Mailboxes.LOAD);
 
                 switch (r.getType()) {
-                    /*case Request.UPDATE_MAILLIST:
-                    case Request.GET_FULL_MAILLIST: {
-                        System.out.println("Recover mail...");
-                        Runnable sendMailList = new SendMailList(toClient, r, log);
-                        executorService.execute(sendMailList);
-                        break;
-                    }*/
-
                     case Request.SEND:{
-                        System.out.println("Reply mail...: " + r.getBody().getRecipients());
-                        Runnable writeMail = new WriteMail(toClient, r, log);
-                        executorService.execute(writeMail);
+                        executorService.execute(new WriteMail(toClient, r, log));
                         break;
                     }
 
                     case Request.DELETE:{
-                        System.out.println("Delete mail...: " + r.getBody());
-                        Runnable deleteMail = new DeleteMail(toClient, r, log);
-                        executorService.execute(deleteMail);
+                        executorService.execute(new DeleteMail(toClient, r, log));
                         break;
                     }
 
                     case Request.MAILLIST:{
-                        System.out.println("Miao mail...");
-                        Runnable deleteMail = new SendMailList(toClient, r, log);
-                        executorService.execute(deleteMail);
+                        executorService.execute(new SendMailList(toClient, r, log));
                         break;
                     }
 
                 }
 
-                Platform.runLater(() -> mailboxes.logsProperty().add(log));
+                mailboxes.logsProperty().add(log);
 
             } catch (IOException | ClassNotFoundException e) {
-                // TODO: client disconnected / problems related with connection
+                //connectionError(r);
                 e.printStackTrace();
             }
         }
@@ -226,59 +178,19 @@ public class ServerLogController {
         public void run() {
             try {
                 List<Mail> mailList = mailboxes.getMailboxMailList(request.getAddress(), request.getCounter());
-
-                for(Mail m : mailList){
-                    System.out.println("Server controller ID: " + m.getID());
-                }
-
                 sendOK(toClient, request, mailList, log);
             } catch(NoSuchElementException noSuchElementException) {
                 addressNotFoundError(toClient, request.getAddress(), request, log);
             } catch (Exception e){
-                e.printStackTrace();
                 internalError(toClient, request, log);
             }
         }
     }
 
-    /*private class SendMailList implements Runnable {
-        private final ObjectOutputStream toClient;
-        private final Request request;
-        private final Log log;
-
-        private SendMailList(ObjectOutputStream toClient, Request request, Log log) {
-            this.toClient = toClient;
-            this.request = request;
-            this.log = log;
-        }
-
-        @Override
-        public void run() {
-            try {
-                boolean type = false;
-                if(request.getType() == Request.UPDATE_MAILLIST)
-                    type = true;
-
-                List<Mail> mailList = mailboxes.getMailboxMailList(request.getAddress(), type);
-
-                for(Mail m : mailList){
-                    System.out.println("Server controller ID: " + m.getID());
-                }
-
-                sendOK(toClient, request, mailList, log);
-            } catch(NoSuchElementException noSuchElementException) {
-                addressNotFoundError(toClient, request.getAddress(), request, log);
-            } catch (Exception e){
-                e.printStackTrace();
-                internalError(toClient, request, log);
-            }
-        }
-    }*/
-
     private class WriteMail implements Runnable{
         private final ObjectOutputStream toClient;
         private final Request request;
-        private final Log log;
+        private Log log;
 
         private WriteMail(ObjectOutputStream toClient, Request request, Log log) {
             this.toClient = toClient;
@@ -292,7 +204,6 @@ public class ServerLogController {
             try {
                 Mail newMail = request.getBody();
                 for(String address : newMail.getRecipients()){
-                    System.out.println("Invio a: " + address);
                     lastAddress = address;
                     mailboxes.updateMailboxMailList(address, newMail);
                 }
@@ -301,7 +212,6 @@ public class ServerLogController {
             } catch (NoSuchElementException noSuchElementException){
                 addressNotFoundError(toClient, lastAddress, request, log);
             } catch (Exception e){
-                e.printStackTrace();
                 internalError(toClient, request, log);
             }
 
@@ -311,7 +221,7 @@ public class ServerLogController {
     private class DeleteMail implements Runnable {
         private final ObjectOutputStream toClient;
         private final Request request;
-        private final Log log;
+        private Log log;
 
         private DeleteMail(ObjectOutputStream toClient, Request request, Log log) {
             this.toClient = toClient;
@@ -322,14 +232,11 @@ public class ServerLogController {
         @Override
         public void run() {
             try {
-                System.out.println("Deleting: " + request.getBody().getID());
                 mailboxes.deleteMailboxMail(request.getAddress(), request.getBody().getID());
-
                 sendOK(toClient, request, log);
             } catch (NoSuchElementException noSuchElementException) {
                 addressNotFoundError(toClient, request.getAddress(), request, log);
             } catch (Exception e) {
-                e.printStackTrace();
                 internalError(toClient, request, log);
             }
         }
@@ -343,12 +250,12 @@ public class ServerLogController {
             toClient.writeObject(response);
 
             Platform.runLater(() -> {
-                log.setStatus(tick);
+                log.setStatus(Mailboxes.TICK);
                 log.setStatusText("Done");
             });
+
         } catch (IOException e){
-            // TODO: client disconnected / problems related with connection
-            e.printStackTrace();
+            connectionError(log);
         }
     }
 
@@ -358,12 +265,12 @@ public class ServerLogController {
             toClient.writeObject(response);
 
             Platform.runLater(() -> {
-                log.setStatus(tick);
+                log.setStatus(Mailboxes.TICK);
                 log.setStatusText("Done");
             });
+
         } catch (IOException e){
-            // TODO: client disconnected / problems related with connection
-            e.printStackTrace();
+            connectionError(log);
         }
     }
 
@@ -373,73 +280,52 @@ public class ServerLogController {
             toClient.writeObject(response);
 
             Platform.runLater(() -> {
-                log.setStatus(cross);
+                log.setStatus(Mailboxes.CROSS);
                 log.setStatusText("Internal Error");
             });
+
         } catch (IOException e){
-            // TODO: client disconnected / problems related with connection
-            e.printStackTrace();
+            connectionError(log);
         }
 
     }
 
     private void addressNotFoundError(ObjectOutputStream toClient, String address, Request request, Log log) {
-        try{
+        try {
             Response response = new Response(Response.ADDRESS_NOT_FOUND, address);
             toClient.writeObject(response);
 
             Platform.runLater(() -> {
-                log.setStatus(cross);
+                log.setStatus(Mailboxes.CROSS);
                 log.setStatusText("Address not found: " + address);
             });
+
         } catch (IOException e){
-            // TODO: client disconnected / problems related with connection
-            e.printStackTrace();
+            connectionError(log);
         }
 
     }
 
     private void badRequestError(ObjectOutputStream toClient){
-        try{
+        try {
             Response response = new Response(Response.BAD_REQUEST);
             toClient.writeObject(response);
 
             // TODO: log a bad request
             //Platform.runLater(() -> mailboxes.logsProperty().add(new Log(response, request)));
+            //mailboxes.updateStatusLog(Mailboxes.FAILED, "Bad request");
         } catch (IOException e){
             // TODO: client disconnected / problems related with connection
             e.printStackTrace();
         }
     }
 
-    /*private class ImageCell<T> extends TableCell<T, ImageView> {
-        private final ImageView image;
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-        public ImageCell() {
-            // add ImageView as graphic to display it in addition
-            // to the text in the cell
-            image = new ImageView();
-            image.setFitWidth(24);
-            image.setFitHeight(24);
-            image.setPreserveRatio(true);
-
-            setGraphic(image);
-            setMinHeight(24);
-        }
-
-
-        @Override
-        protected void updateItem(ImageView log, boolean empty) {
-            super.updateItem(log, empty);
-
-            if (empty || log == null) {
-                // set back to look of empty cell
-                image.setImage(null);
-            } else {
-                // set image and text for non-empty cell
-                image.setImage(log.getImage());
-            }
-        }
-    }*/
-
+    private void connectionError(Log log){
+        Platform.runLater(() -> {
+            log.setStatus(Mailboxes.CROSS);
+            log.setStatusText("Disconnected / Connection errors ");
+        });
+    }
 }

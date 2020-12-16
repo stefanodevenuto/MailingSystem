@@ -13,38 +13,36 @@ import java.util.List;
 
 public class Mailbox {
 
-    private SimpleStringProperty address = new SimpleStringProperty();
-    private ObservableList<Mail> currentMailList = FXCollections.observableArrayList(new ArrayList<>());
-    private ObjectProperty<Mail> currentMail = new SimpleObjectProperty<>(null);
+    private final SimpleStringProperty address =                        // The current logged user
+            new SimpleStringProperty();
+    private ObservableList<Mail> currentMailList =                      // The current mail list
+            FXCollections.observableArrayList(new ArrayList<>());
+    private final ObjectProperty<Mail> currentMail =                    // The current mail of the mail list
+            new SimpleObjectProperty<>(null);
 
-    public StringProperty addressProperty() {
-        return this.address;
-    }
-    public String getAddress() {
-        return this.addressProperty().get();
-    }
-    public void setAddress(String address) {
-        this.addressProperty().set(address);
-    }
+    // Address property usual methods
+    public StringProperty addressProperty() { return this.address; }
+    public String getAddress() { return this.addressProperty().get(); }
+    public void setAddress(String address) { this.addressProperty().set(address); }
 
-    public ObservableList<Mail> currentMailListProperty() {
-        return currentMailList;
+    // Current mail list property usual methods
+    public ObservableList<Mail> currentMailListProperty() { return currentMailList; }
+    public synchronized void setCurrentMailList(List<Mail> current) {
+        currentMailList = FXCollections.observableArrayList(current);
     }
-    public synchronized void setCurrentMailList(List<Mail> current) { currentMailList = FXCollections.observableArrayList(current); }
-    public synchronized void removeCurrentMail(){ currentMailList.remove(getCurrentMail()); }
     public synchronized void addCurrentMailList(Mail mail){ currentMailList.add(mail); }
-    public synchronized void addAllCurrentMailList(List<Mail> toAdd){ currentMailList.addAll(toAdd); }
     public List<Mail> getCurrentMailList() { return new ArrayList<>(currentMailListProperty()); }
 
+
+    // Current mail property usual methods
     public ObjectProperty<Mail> currentMailProperty() {
         return currentMail;
     }
-    public Mail getCurrentMail() {
-        return currentMailProperty().get();
-    }
+    public Mail getCurrentMail() { return currentMailProperty().get(); }
     public void setCurrentMail(Mail mail) {
         currentMailProperty().set(mail);
     }
+    public synchronized void removeCurrentMail(){ currentMailList.remove(getCurrentMail()); }
 
 
 }

@@ -1,16 +1,14 @@
 package progetto.server;
 
 import com.opencsv.bean.*;
-import com.opencsv.exceptions.CsvConstraintViolationException;
-import com.opencsv.exceptions.CsvDataTypeMismatchException;
-import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.ObservableMap;
+import javafx.scene.image.Image;
 import progetto.common.Mail;
 import progetto.common.Request;
 
 import java.io.*;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
@@ -23,9 +21,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Mailboxes {
-    private Map<String, Mailbox> mailboxList;
+    private final Map<String, Mailbox> mailboxList;
     private ObservableList<Log> logs = FXCollections.observableArrayList();
-    private String path;
+    private final String path;
+
+    public static Image LOAD;
+    public static Image TICK;
+    public static Image CROSS;
+
 
     public Mailboxes(String path) throws IOException {
         mailboxList = new HashMap<>();
@@ -38,6 +41,10 @@ public class Mailboxes {
                 newMailbox(user);
             }
         }
+
+        LOAD = new Image(getClass().getResource("/progetto.server/load.jpg").toExternalForm());
+        CROSS = new Image(getClass().getResource("/progetto.server/cross.jpg").toExternalForm());
+        TICK = new Image(getClass().getResource("/progetto.server/tick.jpg").toExternalForm());
     }
 
     public ObservableList<Log> logsProperty() {
@@ -115,7 +122,6 @@ public class Mailboxes {
                 Reader reader = new FileReader(path);
                 BufferedReader bufferedReader = new ReplaceNewLineReader(reader);
                 //Reader reader = Files.newBufferedReader(Paths.get("C:\\Users\\stefa\\Desktop\\" + address + ".csv"));
-                CsvToBean<Mail> csvToBean;
 
                 // Ignores empty lines from the input
                 CsvToBeanFilter ignoreEmptyLines = strings -> {
@@ -127,7 +133,7 @@ public class Mailboxes {
                     return false;
                 };
 
-                csvToBean = new CsvToBeanBuilder<Mail>(bufferedReader)
+                CsvToBean<Mail> csvToBean = new CsvToBeanBuilder<Mail>(bufferedReader)
                         .withType(Mail.class)
                         .withIgnoreLeadingWhiteSpace(true)
                         .withFilter(ignoreEmptyLines)
@@ -163,7 +169,6 @@ public class Mailboxes {
                     StandardOpenOption.CREATE,
                     StandardOpenOption.APPEND))
             {
-
 
                 StatefulBeanToCsv<Mail> beanToCsv = new StatefulBeanToCsvBuilder<Mail>(writer)
                         .withEscapechar('\\')
@@ -237,4 +242,5 @@ public class Mailboxes {
         return 0;
     }
 
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 }

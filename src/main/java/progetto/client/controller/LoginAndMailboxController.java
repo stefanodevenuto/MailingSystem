@@ -1,9 +1,5 @@
 package progetto.client.controller;
 
-import javafx.beans.binding.Bindings;
-import javafx.beans.binding.IntegerBinding;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
@@ -14,34 +10,36 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.concurrent.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 
 public class LoginAndMailboxController {
 
-    private Mailbox mailbox;
-    private Requester requester;
+    private Mailbox mailbox;                                   // The model
+    private Requester requester;                               // The instance of the Requester API
 
-    private HashMap<String, Pane> screenMap;
-    private BorderPane root;
-    private NewMailController newMailController;
-    private SingleMailController singleMailController;
-
-    public static final int MAX_TRIES = 10;
+    private HashMap<String, Pane> screenMap;                   // References to loaded FXML files
+    private BorderPane root;                                   // The main panel
+    private NewMailController newMailController;               // The controller of the single mail view
+    private SingleMailController singleMailController;         // The controller of the new mail view
 
     @FXML
-    private TextField insertedMail;
+    private TextField insertedMail;                            // Where the user insert the email address
 
     @FXML
-    private ListView<Mail> mailListView;
+    private ListView<Mail> mailListView;                       // Current mail list
 
     @FXML
-    private Button newBtn;
+    private Button newBtn;                                     // In order to create a new mail
 
+    /**
+     * Initialize all the resources needed by the controller to properly operate
+     * @param mailbox the model
+     * @param screenMap a Map object that contains references to the loaded FXML files
+     * @param root the main panel
+     * @param requester the instance of the Requester API
+     * @param singleMailController the controller of the single mail view
+     * @param newMailController the controller of the new mail view
+     */
     public void initController(Mailbox mailbox, HashMap<String, Pane> screenMap, BorderPane root, Requester requester,
                                SingleMailController singleMailController, NewMailController newMailController) {
         // ensure model is only set once
@@ -59,11 +57,13 @@ public class LoginAndMailboxController {
 
     @FXML
     public void handleNewButton(ActionEvent actionEvent) {
+        // Create a new mail
         Mail newMail = new Mail();
-        newMail.setRecipients(new ArrayList<>());
+        //newMail.setRecipients(new ArrayList<>());
 
         mailbox.setCurrentMail(newMail);
 
+        // Show the new mail view
         root.setRight(screenMap.get("newMail"));
         newMailController.show();
     }
@@ -84,12 +84,14 @@ public class LoginAndMailboxController {
                     getStyleClass().removeAll(newMailCssClass);
                 } else {
 
+                    // If it's a new mail add the proper CSS
                     if(mail.getNewMail()){
                         getStyleClass().add(newMailCssClass);
                     } else {
                         getStyleClass().removeAll(newMailCssClass);
                     }
 
+                    // Remove new mail CSS when it loses focus
                     selectedProperty().addListener((observableValue, aBoolean, notSelected) -> {
                         if (!notSelected) {
                             getStyleClass().remove(newMailCssClass);
@@ -104,9 +106,7 @@ public class LoginAndMailboxController {
             }
         });
 
-        //mailListView.setItems(mailbox.currentMailListProperty());
-
-        //requester.getAndUpdateMailList(givenMailAddress, mailListView, newBtn);
+        // Ask the requester to get and continuously update the mail list (and the bound list view)
         requester.getAndUpdateMailList(givenMailAddress, mailListView, newBtn);
 
         // To immediately scroll to the bottom
@@ -121,12 +121,13 @@ public class LoginAndMailboxController {
         Mail m = mailListView.getSelectionModel().getSelectedItem();
 
         if(m != null){
-            m.setNewMail(false);
             System.out.println("Clicked: " + m.getID() + " " + m.toString());
+
+            // Mark it as a read mail
             m.setNewMail(false);
+
+            // Change the current mail
             mailbox.setCurrentMail(m);
-
-
             root.setRight(screenMap.get("singleMail"));
         }
     }

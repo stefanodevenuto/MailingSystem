@@ -26,21 +26,21 @@ public class Mail implements Externalizable  {
     private int ID;
 
     @CsvCustomBindByPosition(position = 1, converter = StringPropertyConverter.class)
-    private StringProperty title = new SimpleStringProperty();
+    private final StringProperty title = new SimpleStringProperty();
 
     @CsvCustomBindByPosition(position = 2, converter = StringPropertyConverter.class)
-    private StringProperty text = new SimpleStringProperty();
+    private final StringProperty text = new SimpleStringProperty();
 
     @CsvCustomBindByPosition(position = 3, converter = StringPropertyConverter.class)
-    private StringProperty sender =  new SimpleStringProperty();
+    private final StringProperty sender =  new SimpleStringProperty();
 
     @CsvCustomBindByPosition(position = 4, converter = LocalDateConverter.class)
-    private ObjectProperty<LocalDate> dateOfDispatch = new SimpleObjectProperty<>();
+    private final ObjectProperty<LocalDate> dateOfDispatch = new SimpleObjectProperty<>();
 
     @CsvCustomBindByPosition(position = 5, converter = ObservableListConverter.class)
-    private ObservableList<String> recipients = FXCollections.observableArrayList(new ArrayList<>());
+    private final ObservableList<String> recipients = FXCollections.observableArrayList(new ArrayList<>());
 
-    private boolean newMail = false;
+    private boolean newMail = false;            // Used by client in order add specific CSS to new mails
 
     public Mail() {}
 
@@ -51,6 +51,8 @@ public class Mail implements Externalizable  {
         setDateOfDispatch(date);
         setRecipients(recipients);
     }
+
+    //ID property usual methods
     public int getID() {
         return ID;
     }
@@ -58,6 +60,7 @@ public class Mail implements Externalizable  {
         this.ID = ID;
     }
 
+    // Title property usual methods
     public StringProperty titleProperty() {
         return this.title;
     }
@@ -68,6 +71,7 @@ public class Mail implements Externalizable  {
         this.titleProperty().set(title);
     }
 
+    // Text property usual methods
     public StringProperty textProperty() {
         return this.text;
     }
@@ -78,6 +82,7 @@ public class Mail implements Externalizable  {
         this.textProperty().set(text);
     }
 
+    // Sender property usual methods
     public StringProperty senderProperty() {
         return this.sender;
     }
@@ -88,6 +93,7 @@ public class Mail implements Externalizable  {
         this.senderProperty().set(sender);
     }
 
+    // Date of dispatch property usual methods
     public ObjectProperty<LocalDate> dateOfDispatchProperty() {
         return dateOfDispatch;
     }
@@ -98,6 +104,7 @@ public class Mail implements Externalizable  {
         dateOfDispatchProperty().set(localDate);
     }
 
+    // Recipients property usual methods
     public ObservableList<String> recipientsProperty() {
         return recipients;
     }
@@ -111,11 +118,11 @@ public class Mail implements Externalizable  {
     public boolean getNewMail() {
         return newMail;
     }
-
     public void setNewMail(boolean newMail) {
         this.newMail = newMail;
     }
 
+    // In order to make Properties serializable
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeInt(ID);
@@ -134,11 +141,5 @@ public class Mail implements Externalizable  {
         setSender((String) in.readObject());
         setDateOfDispatch((LocalDate) in.readObject());
         setRecipients((List<String>) in.readObject());
-    }
-
-    @Override
-    public String toString() {
-        return "Title: " + title.get() + "\n" +
-                "From: " + sender.get() + "\n";
     }
 }

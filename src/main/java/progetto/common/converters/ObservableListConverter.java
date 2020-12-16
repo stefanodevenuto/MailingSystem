@@ -9,7 +9,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-// To parse a CSV field to ObservableList
+/**
+ * Converts an Observable List to a list of strings, required to parse this field to CSV
+ */
 public class ObservableListConverter extends AbstractBeanField<ObservableList<String>, String> {
 
     // The recipients' addresses can't contain commas (,)

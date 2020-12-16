@@ -27,29 +27,35 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Requester {
-    private final static int MAX_TRIES = 10;
+    private final static int MAX_TRIES = 10;                            // Max reconnection tries
     private static final String connectionError = "Reconnection try number: ";
     public static final Pattern EMAIL_ADDRESS_REGEX =
             Pattern.compile("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,6}$", Pattern.CASE_INSENSITIVE);
+            // Mail address regex
 
-    private final String host;
-    private final int port;
-    private final Mailbox mailbox;
+    private final String host;                                          // Current host name / IP
+    private final int port;                                             // Current port
+    private final Mailbox mailbox;                                      // The model
 
-    private Socket server;
-    private ObjectOutputStream toServer;
-    private ObjectInputStream fromServer;
+    private Socket server;                                              // Connection with the server
+    private ObjectOutputStream toServer;                                // Output stream to the server
+    private ObjectInputStream fromServer;                               // Input stream from the server
 
-    private int tries = 0;
-    private Alert reconnectionAlert = null;
+    private int tries = 0;                                              // Current reconnection try
+    private Alert reconnectionAlert = null;                             // Reconnection alert in case of failure
 
-    private final AtomicInteger emailCounter = new AtomicInteger(0);
+    private final AtomicInteger emailCounter =                          // Read mails counter
+            new AtomicInteger(0);
 
-    private final SimpleStringProperty message = new SimpleStringProperty();
-    private final ObjectProperty<Alert.AlertType> alertType = new SimpleObjectProperty<>(Alert.AlertType.INFORMATION);
+    private final SimpleStringProperty message =                        // Message of the alert property
+            new SimpleStringProperty();
+    private final ObjectProperty<Alert.AlertType> alertType =           // Type of the alert property
+            new SimpleObjectProperty<>(Alert.AlertType.INFORMATION);
 
-    private GetMailList updateMailListTask = null;
-    private boolean firstRequest;
+    private GetMailList updateMailListTask = null;                      // Reference to the old mail list task
+    private boolean firstRequest;                                       // Reveal if it's the first mail list request
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     public Requester(String host, int port, Mailbox mailbox){
         this.host = host;
@@ -86,12 +92,12 @@ public class Requester {
         tries = 0;
         emailCounter.set(0);
         firstRequest = true;
+        alertType.setValue(Alert.AlertType.INFORMATION);
 
+        // Bind boolean property to stop execution problems comes
         SimpleBooleanProperty running = new SimpleBooleanProperty(true);
         getMailList.setPeriod(Duration.seconds(3));
         getMailList.restartOnFailureProperty().bind(running);
-
-        alertType.setValue(Alert.AlertType.INFORMATION);
 
         getMailList.setOnFailed(workerStateEvent -> {
             Throwable exc = getMailList.getException();
@@ -99,6 +105,7 @@ public class Requester {
                 tries++;
                 message.set(connectionError + tries);
 
+                // Create the new alert box and bind tries and severity
                 if (tries == 1) {
                     reconnectionAlert = informationAlert("Connection error");
                     reconnectionAlert.contentTextProperty().bind(message);
@@ -106,16 +113,18 @@ public class Requester {
                     reconnectionAlert.show();
                 }
 
+                // Stop execution when the maximum tries number has been reached and change alert properties accordingly
                 if (tries == MAX_TRIES) {
                     alertType.setValue(Alert.AlertType.ERROR);
                     message.set("The server is currently down: you can continue offline to look at your emails");
                     running.set(false);
                 }
             } else if(exc instanceof AddressNotFound){
+                // Stop the execution if the user inserted a mail address not present
                 wrongAddress(((AddressNotFound) exc).getAddress()).show();
                 running.set(false);
             } else {
-                exc.printStackTrace();
+                // Stop the execution if server internal errors arrive
                 internalError().show();
                 running.set(false);
             }
@@ -126,15 +135,16 @@ public class Requester {
             newBtn.setDisable(false);
             mailbox.setAddress(givenMailAddress);
 
+            // Recover the result/mail list
             List<Mail> result = getMailList.getValue();
 
-            if(firstRequest) {
+            if(firstRequest) { // Set the current mail list if it's the first mail list request sent
                 firstRequest = false;
                 if (result != null) {
                     mailbox.setCurrentMailList(result);
                     mailListView.setItems(mailbox.currentMailListProperty());
                 }
-            } else {
+            } else { // Add to the existing one otherwise
                 if (result != null) {
                     for (Mail m : result) {
                         m.setNewMail(true);
@@ -143,11 +153,16 @@ public class Requester {
                 }
             }
 
-            mailListView.scrollTo(mailListView.getItems().size() - 1);
-
-            if(result != null)
+            // In order to move the window of received mails
+            if(result != null){
                 emailCounter.getAndAdd(result.size());
+                if(!result.isEmpty())
+                    // To immediately scroll to the bottom
+                    mailListView.scrollTo(mailListView.getItems().size() - 1);
+            }
 
+
+            // Close the reconnection alert if an error occurred previously
             if (reconnectionAlert != null)
                 reconnectionAlert.close();
         });
@@ -155,6 +170,7 @@ public class Requester {
         getMailList.start();
     }
 
+    // Create a new connection, send the MAILLIST request and return the mail list
     private class GetMailList extends ScheduledService<List<Mail>> {
         private final String givenAddress;
 
@@ -193,7 +209,9 @@ public class Requester {
         DeleteCurrentMail deleteCurrentMail = new DeleteCurrentMail();
 
         deleteCurrentMail.setOnSucceeded(workerStateEvent -> {
+            // Decrement the window of current mails accordingly to the elimination of the mail on the server
             emailCounter.decrementAndGet();
+
             mailbox.removeCurrentMail();
             singleMailController.hide();
         });
@@ -202,11 +220,13 @@ public class Requester {
             Throwable exc = deleteCurrentMail.getException();
 
             if (exc instanceof IOException) {
+                // Show a not connected alert if the user try to delete an email when not connected
                 Alert notConnected = errorAlert("Not connected");
                 notConnected.setContentText("The client is not connected: wait the reconnection process or " +
                         "redo the login process");
                 notConnected.show();
             } else if (exc instanceof AddressNotFound) {
+                // Show the address not found alert if a not present address have been inserted
                 wrongAddress(((AddressNotFound) exc).getAddress()).show();
             } else {
                 internalError().show();
@@ -216,6 +236,7 @@ public class Requester {
         deleteCurrentMail.start();
     }
 
+    // Create a new connection and send the DELETE request
     private class DeleteCurrentMail extends Service<Void>{
 
         @Override
@@ -248,7 +269,7 @@ public class Requester {
     public void sendCurrentMail(NewMailController newMailController) {
         SendCurrentMail sendCurrentMail = new SendCurrentMail();
 
-        // Title and recipients have to be valued
+        // Check if Title and Recipients are valued
         if(mailbox.getCurrentMail().getRecipients().isEmpty() || mailbox.getCurrentMail().getTitle() == null){
             Alert alert = informationAlert("Wrong email");
             alert.setContentText("Mail addresses and Title can't be empty!");
@@ -257,7 +278,7 @@ public class Requester {
             return;
         }
 
-        // Inserted emails have to be real mail addresses
+        // Check if inserted strings are properly formatted mail addresses
         for(String recipient : mailbox.getCurrentMail().getRecipients()){
             if(!validate(recipient)) {
                 Alert alert = informationAlert("Wrong email");
@@ -269,10 +290,12 @@ public class Requester {
         }
 
         sendCurrentMail.setOnSucceeded(workerStateEvent -> {
+            // Show the mail sent alert
             Alert success = informationAlert("Success");
             success.setContentText("Mail sent successfully!");
             success.show();
 
+            // Start the animation of sent mail
             newMailController.hide();
         });
 
@@ -280,11 +303,14 @@ public class Requester {
             Throwable exc = sendCurrentMail.getException();
 
             if (exc instanceof IOException) {
+                // Show a not connected alert if the user try to send an email when not connected
                 Alert notConnected = errorAlert("Not connected");
                 notConnected.setContentText("The client is not connected: wait the reconnection process or " +
                         "redo the login one");
                 notConnected.show();
             } else if (exc instanceof AddressNotFound) {
+                // Show the address not found alert, along with the indicted address,
+                // if a not present mail addresses have been inserted
                 String addressNotFound = ((AddressNotFound) exc).getAddress();
 
                 Alert wrongAddress = warningAlert("Address not found");
@@ -300,6 +326,7 @@ public class Requester {
         sendCurrentMail.start();
     }
 
+    // Create a new connection and send the SEND request
     private class SendCurrentMail extends Service<Void>{
 
         @Override
@@ -325,6 +352,7 @@ public class Requester {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    // Create a new Socket along with his Streams
     private void newConnectionAndStreams() throws IOException {
         server = new Socket(host, port);
         toServer = new ObjectOutputStream(server.getOutputStream());
@@ -349,10 +377,16 @@ public class Requester {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    // Handle the responses received by the server
-    private List<Mail> handleResponse(Object o) throws InternalError, AddressNotFound {
-        if(!(o instanceof Response)) throw new InternalError();
-        Response r = (Response) o;
+    /**
+     * Handle the responses received by the server
+     * @param rawResponse the given raw Response from server
+     * @return the body of the Response
+     * @throws InternalError when the server have problems
+     * @throws AddressNotFound when one or more address were not found
+     */
+    private List<Mail> handleResponse(Object rawResponse) throws InternalError, AddressNotFound {
+        if(!(rawResponse instanceof Response)) throw new InternalError();
+        Response r = (Response) rawResponse;
         switch (r.getCode()){
             case Response.OK:{
                 return r.getBody();
@@ -380,6 +414,7 @@ public class Requester {
             return address;
         }
     }
+
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

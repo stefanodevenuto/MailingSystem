@@ -26,54 +26,48 @@ import java.util.Arrays;
 import java.util.HashMap;
 
 public class NewMailController {
-    private Mailbox mailbox;
-    private Requester requester;
+    private Mailbox mailbox;                                    // The model
+    private Requester requester;                                // The instance of the Requester API
 
-    private HashMap<String, Pane> screenMap;
-    private BorderPane root;
+    private TranslateTransition hideGridPane;                   // The send mail animation
+    private boolean showed = true;                              // Reveal the state of the view
 
-    private TranslateTransition hideGridPane;
-    private boolean showed = true;
-
-    private static final int LIST_CELL_HEIGHT = 24;
+    private static final int LIST_CELL_HEIGHT = 24;             // The height of a single list row
 
     @FXML
-    private GridPane gridPane;
+    private GridPane gridPane;                                  // Main grid pane
 
     @FXML
-    private TextField currentTitle;
+    private TextField currentTitle;                             // Title of the new mail
 
     @FXML
-    private TextField currentRecipientsTextField;
+    private TextField currentRecipientsTextField;               // Recipients text field of the new mail
 
     @FXML
-    private ListView<String> currentRecipientsListView;
+    private ListView<String> currentRecipientsListView;         // Recipients list view of the new mail
 
     @FXML
-    private RowConstraints recipientsRow;
+    private RowConstraints recipientsRow;                       // Grid pane row constraint of the recipient one
 
     @FXML
-    private TextArea currentText;
-
-    @FXML
-    public void handleSendButton(ActionEvent actionEvent) {
-        mailbox.getCurrentMail().setSender(mailbox.getAddress());
-        mailbox.getCurrentMail().setDateOfDispatch(LocalDate.now());
-        requester.sendCurrentMail(this);
-    }
+    private TextArea currentText;                               // Text of the new mail
 
 
-    public void initController(Mailbox mailbox, HashMap<String, Pane> screenMap, BorderPane root, Requester requester) {
+    /**
+     * Initialize all the resources needed by the controller to properly operate
+     * @param mailbox the model
+     * @param requester the instance of the Requester API
+     */
+    public void initController(Mailbox mailbox, Requester requester) {
         // ensure model is only set once:
         if (this.mailbox != null) {
             throw new IllegalStateException("Model can only be initialized once");
         }
 
         this.mailbox = mailbox;
-        this.screenMap = screenMap;
-        this.root = root;
         this.requester = requester;
 
+        // Change listener that split mail addresses by semicolon (;)
         ChangeListener<Boolean> recipientsListener = (observable, oldProperty, newProperty) -> {
             if(!newProperty){
                 String givenRecipients = currentRecipientsTextField.getText();
@@ -89,6 +83,7 @@ public class NewMailController {
             @Override
             public void changed(ObservableValue observable, Mail oldMail, Mail newMail) {
 
+                // Unbind all if the old mail doesn't exist / doesn't exist anymore
                 if (oldMail != null) {
                     currentTitle.textProperty().unbindBidirectional(oldMail.titleProperty());
                     currentRecipientsTextField.textProperty().unbindBidirectional(oldMail.recipientsProperty());
@@ -96,6 +91,8 @@ public class NewMailController {
                     currentRecipientsListView.setItems(null);
                     currentText.textProperty().unbindBidirectional(oldMail.textProperty());
                 }
+
+                // If a new mail doesn't exist
                 if (newMail == null) {
                     currentTitle.setText("");
                     currentRecipientsTextField.setText("");
@@ -103,19 +100,23 @@ public class NewMailController {
                     currentText.setText("");
 
                 } else {
+
+                    // Bind all to the new mail
                     currentTitle.textProperty().bindBidirectional(newMail.titleProperty());
                     currentRecipientsTextField.setText("");
                     currentRecipientsTextField.focusedProperty().addListener(recipientsListener);
                     currentRecipientsListView.setItems(newMail.recipientsProperty());
                     currentText.textProperty().bindBidirectional(newMail.textProperty());
 
+                    // Make the recipients' list view visible if Forward/New button was pressed, otherwise make visible
+                    // the recipients' text field (Reply/Reply All button pressed)
                     if(newMail.getRecipients() == null || newMail.getRecipients().isEmpty()){
-                        System.out.println("Arrivo da una Forward/New");
                         currentRecipientsTextField.setVisible(true);
                         currentRecipientsListView.setVisible(false);
 
                     } else {
-                        System.out.println("Arrivo da una Reply/Reply All: " + newMail.getRecipients());
+
+                        // Custom bind to resize the list view size to the number of recipients
                         IntegerBinding recipientsSize = Bindings.size(newMail.recipientsProperty()).multiply(LIST_CELL_HEIGHT);
 
                         currentRecipientsListView.minHeightProperty().bind(recipientsSize);
@@ -127,19 +128,27 @@ public class NewMailController {
                         currentRecipientsTextField.setVisible(false);
                         currentRecipientsListView.setVisible(true);
                     }
-
-                    System.out.println("LA NUOVA MAIL: " + mailbox.getCurrentMail());
                 }
-
-                System.out.println("CAMBIATO DA NEW: " + mailbox.getCurrentMail());
             }
         });
 
+        // Create the transition for the "slide right" animation on Send
         hideGridPane = new TranslateTransition(Duration.millis(250), gridPane);
         hideGridPane.setByX(800.0);
         hideGridPane.setOnFinished(event -> showed = false);
     }
 
+    @FXML
+    public void handleSendButton(ActionEvent actionEvent) {
+        // Set the sender and the date of dispatch of the new mail
+        mailbox.getCurrentMail().setSender(mailbox.getAddress());
+        mailbox.getCurrentMail().setDateOfDispatch(LocalDate.now());
+
+        // Ask the requester to send the current mail
+        requester.sendCurrentMail(this);
+    }
+
+    // Make the grid pane visible
     public void show(){
         System.out.println("Showed show: " + showed);
         if(!showed){
@@ -148,30 +157,11 @@ public class NewMailController {
         }
     }
 
+    // Make the grid pane invisible with animation
     public void hide(){
         System.out.println("Showed hide: " + showed);
         if(showed){
             hideGridPane.play();
         }
     }
-
-    /*private void bindBidirectionalAll(StringProperty titleProperty, StringProperty senderProperty,
-                                      ObservableList<String> recipientsProperty, StringProperty textProperty){
-
-        currentTitle.textProperty().bindBidirectional(titleProperty);
-        currentSender.textProperty().bindBidirectional(senderProperty);
-        currentRecipients.setItems(recipientsProperty);
-        currentText.textProperty().bindBidirectional(textProperty);
-
-    }
-
-    private void unbindBidirectionalAll(StringProperty titleProperty, StringProperty senderProperty,
-                                        StringProperty textProperty){
-
-        currentTitle.textProperty().unbindBidirectional(titleProperty);
-        currentSender.textProperty().unbindBidirectional(senderProperty);
-        currentRecipients.setItems(null);
-        currentText.textProperty().unbindBidirectional(textProperty);
-    }*/
-
 }

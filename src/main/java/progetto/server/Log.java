@@ -12,13 +12,13 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 public class Log {
-    private final static DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private final static DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd, HH:mm:ss");
 
-    private StringProperty dateTime = new SimpleStringProperty();
-    private StringProperty requester = new SimpleStringProperty();
-    private ObjectProperty<Request> request = new SimpleObjectProperty<>();
-    private ObjectProperty<Image> status = new SimpleObjectProperty<>();
-    private StringProperty statusText = new SimpleStringProperty();
+    private final StringProperty dateTime = new SimpleStringProperty();
+    private final StringProperty requester = new SimpleStringProperty();
+    private final ObjectProperty<Request> request = new SimpleObjectProperty<>();
+    private final ObjectProperty<Image> status = new SimpleObjectProperty<>();
+    private final StringProperty statusText = new SimpleStringProperty();
 
     public Log(String requester, Request request, Image image){
         setLocalDateTime(LocalDateTime.now().format(formatter));
