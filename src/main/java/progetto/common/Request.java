@@ -3,15 +3,14 @@ package progetto.common;
 import java.io.Serializable;
 
 public class Request implements Serializable {
-    public static final int GET_FULL_MAILLIST = 0;
-    public static final int UPDATE_MAILLIST = 1;
+    public static final int MAILLIST = 1;
     public static final int SEND = 2;
-    public static final int DELETE = 5;
+    public static final int DELETE = 3;
 
-    private String address;
-    private int type;
-    private int counter;
-    private Mail body;
+    private final String address;
+    private final int type;
+    private final int counter;
+    private final Mail body;
 
     public Request(int type, String address) {
         this.type = type;
@@ -52,16 +51,11 @@ public class Request implements Serializable {
 
     @Override
     public String toString() {
-        String text = null;
+        String text;
 
         switch (getType()) {
-            case Request.GET_FULL_MAILLIST: {
-                text = "FULL MAILLIST ";
-                break;
-            }
-
-            case Request.UPDATE_MAILLIST: {
-                text = "INCREMENTAL MAILLIST ";
+            case Request.MAILLIST: {
+                text = "MAILLIST ";
                 break;
             }
 

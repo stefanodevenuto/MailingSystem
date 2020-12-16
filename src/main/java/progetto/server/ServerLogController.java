@@ -171,13 +171,13 @@ public class ServerLogController {
                 Log log = new Log(r.getAddress(), r, load);
 
                 switch (r.getType()) {
-                    case Request.UPDATE_MAILLIST:
+                    /*case Request.UPDATE_MAILLIST:
                     case Request.GET_FULL_MAILLIST: {
                         System.out.println("Recover mail...");
                         Runnable sendMailList = new SendMailList(toClient, r, log);
                         executorService.execute(sendMailList);
                         break;
-                    }
+                    }*/
 
                     case Request.SEND:{
                         System.out.println("Reply mail...: " + r.getBody().getRecipients());
@@ -189,6 +189,13 @@ public class ServerLogController {
                     case Request.DELETE:{
                         System.out.println("Delete mail...: " + r.getBody());
                         Runnable deleteMail = new DeleteMail(toClient, r, log);
+                        executorService.execute(deleteMail);
+                        break;
+                    }
+
+                    case Request.MAILLIST:{
+                        System.out.println("Miao mail...");
+                        Runnable deleteMail = new SendMailList(toClient, r, log);
                         executorService.execute(deleteMail);
                         break;
                     }
@@ -205,6 +212,36 @@ public class ServerLogController {
     }
 
     private class SendMailList implements Runnable {
+        private final ObjectOutputStream toClient;
+        private final Request request;
+        private final Log log;
+
+        private SendMailList(ObjectOutputStream toClient, Request request, Log log) {
+            this.toClient = toClient;
+            this.request = request;
+            this.log = log;
+        }
+
+        @Override
+        public void run() {
+            try {
+                List<Mail> mailList = mailboxes.getMailboxMailList(request.getAddress(), request.getCounter());
+
+                for(Mail m : mailList){
+                    System.out.println("Server controller ID: " + m.getID());
+                }
+
+                sendOK(toClient, request, mailList, log);
+            } catch(NoSuchElementException noSuchElementException) {
+                addressNotFoundError(toClient, request.getAddress(), request, log);
+            } catch (Exception e){
+                e.printStackTrace();
+                internalError(toClient, request, log);
+            }
+        }
+    }
+
+    /*private class SendMailList implements Runnable {
         private final ObjectOutputStream toClient;
         private final Request request;
         private final Log log;
@@ -236,7 +273,7 @@ public class ServerLogController {
                 internalError(toClient, request, log);
             }
         }
-    }
+    }*/
 
     private class WriteMail implements Runnable{
         private final ObjectOutputStream toClient;

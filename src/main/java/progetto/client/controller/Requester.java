@@ -10,7 +10,6 @@ import javafx.concurrent.Task;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
-import javafx.scene.layout.GridPane;
 import javafx.util.Duration;
 
 import progetto.client.model.Mailbox;
@@ -23,6 +22,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -41,13 +41,15 @@ public class Requester {
     private ObjectInputStream fromServer;
 
     private int tries = 0;
-    private boolean failedMailList = false;
     private Alert reconnectionAlert = null;
+
+    private final AtomicInteger emailCounter = new AtomicInteger(0);
 
     private final SimpleStringProperty message = new SimpleStringProperty();
     private final ObjectProperty<Alert.AlertType> alertType = new SimpleObjectProperty<>(Alert.AlertType.INFORMATION);
 
-    private GetUpdatedMailList updateMailListTask = null;
+    private GetMailList updateMailListTask = null;
+    private boolean firstRequest;
 
     public Requester(String host, int port, Mailbox mailbox){
         this.host = host;
@@ -64,11 +66,12 @@ public class Requester {
      * @param newBtn the button used to create a new email, in order to make it usable in case of success
      */
     public void getAndUpdateMailList(String givenMailAddress, ListView<Mail> mailListView, Button newBtn) {
-        GetFullMailList getFullMailList = new GetFullMailList(givenMailAddress);
-        System.out.println("Current: " + (updateMailListTask == null));
-        tries = 0;
-        alertType.setValue(Alert.AlertType.INFORMATION);
 
+        if(updateMailListTask != null){
+            updateMailListTask.cancel();
+        }
+
+        // Check if the inserted text is a properly formatted mail address
         if(!validate(givenMailAddress)) {
             Alert alert = informationAlert("Wrong email");
             alert.setContentText("Please insert a valid mail address!");
@@ -77,122 +80,22 @@ public class Requester {
             return;
         }
 
-        getFullMailList.setOnFailed(workerStateEvent -> {
-            if(updateMailListTask != null){
-                updateMailListTask.cancel();
-            }
+        GetMailList getMailList = new GetMailList(givenMailAddress);
 
-            Throwable exc = getFullMailList.getException();
-
-            if (exc instanceof IOException) {
-                tries++;
-                message.set(connectionError + tries);
-
-                // Create and show a reconnection alert with the try number
-                if (tries == 1) {
-                    reconnectionAlert = informationAlert("Connection error");
-                    reconnectionAlert.contentTextProperty().bind(message);
-                    reconnectionAlert.alertTypeProperty().bind(alertType);
-                    reconnectionAlert.show();
-                }
-
-                // Change the alert to ERROR
-                if (tries == MAX_TRIES) {
-                    alertType.setValue(Alert.AlertType.ERROR);
-                    message.set("The server is currently down: try again later!");
-                } else {
-                    getFullMailList.restart();
-                }
-            } else if(exc instanceof AddressNotFound){
-                wrongAddress(((AddressNotFound) exc).getAddress()).show();
-            } else {
-                internalError().show();
-            }
-        });
-
-        // Set the entire mail list to the list view
-        getFullMailList.setOnSucceeded(workerStateEvent -> {
-
-            List<Mail> result = getFullMailList.getValue();
-            if (result != null) {
-                for (Mail m : result) {
-                    System.out.println(m);
-                }
-                mailbox.setAddress(givenMailAddress);
-                mailbox.setCurrentMailList(result);
-                mailListView.setItems(mailbox.currentMailListProperty());// REMEMBER: seItems looks for changes in
-                                                                         // the list, NOT if the list itself changes
-            }
-
-            // Close the alert if a fail occurred
-            if(reconnectionAlert != null)
-                reconnectionAlert.close();
-
-            newBtn.setDisable(false);
-
-            // Cancel the previous update MailList task if re-logged
-            if(updateMailListTask != null){
-                updateMailListTask.cancel();
-            }
-
-            // Start the new update mail list service
-            getUpdatedMailList(mailListView);
-        });
-
-        getFullMailList.start();
-    }
-
-    // Request the full mail list and handle the response
-    private class GetFullMailList extends Service<List<Mail>> {
-        private final String givenEmailAddress;
-
-        private GetFullMailList(String givenEmailAddress){
-            this.givenEmailAddress = givenEmailAddress;
-        }
-
-        @Override
-        protected Task<List<Mail>> createTask() {
-            return new Task<>() {
-                @Override
-                protected List<Mail> call() throws IOException, ClassNotFoundException, AddressNotFound, InternalError {
-                    try{
-                        newConnectionAndStreams();
-                        toServer.writeObject(new Request(Request.GET_FULL_MAILLIST,
-                                                         givenEmailAddress));
-                        return handleResponse(fromServer.readObject());
-                    } finally {
-                        closeAll();
-                    }
-                }
-            };
-        }
-    }
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    /**
-     * Periodically update the current mail list
-     * @param mailListView the ListView where the result will be visualized
-     */
-    private void getUpdatedMailList(ListView<Mail> mailListView) {
-        GetUpdatedMailList getUpdatedMailList = new GetUpdatedMailList();
-
+        // Initialize and re-initialize every user oriented variable
         tries = 0;
+        emailCounter.set(0);
+        firstRequest = true;
+
         SimpleBooleanProperty running = new SimpleBooleanProperty(true);
+        getMailList.setPeriod(Duration.seconds(3));
+        getMailList.restartOnFailureProperty().bind(running);
+
         alertType.setValue(Alert.AlertType.INFORMATION);
 
-        getUpdatedMailList.setPeriod(Duration.seconds(3));
-        getUpdatedMailList.setDelay(Duration.seconds(3));
-
-        getUpdatedMailList.restartOnFailureProperty().bind(running);
-
-        getUpdatedMailList.setOnFailed(workerStateEvent -> {
-            Throwable exc = getUpdatedMailList.getException();
-
-            failedMailList = true;
-
+        getMailList.setOnFailed(workerStateEvent -> {
+            Throwable exc = getMailList.getException();
             if (exc instanceof IOException) {
-
                 tries++;
                 message.set(connectionError + tries);
 
@@ -206,51 +109,58 @@ public class Requester {
                 if (tries == MAX_TRIES) {
                     alertType.setValue(Alert.AlertType.ERROR);
                     message.set("The server is currently down: you can continue offline to look at your emails");
-
-                    //getUpdatedMailList.cancel();
                     running.set(false);
-
                 }
             } else if(exc instanceof AddressNotFound){
                 wrongAddress(((AddressNotFound) exc).getAddress()).show();
+                running.set(false);
             } else {
                 exc.printStackTrace();
                 internalError().show();
+                running.set(false);
             }
         });
 
-        getUpdatedMailList.setOnSucceeded(workerStateEvent -> {
+        getMailList.setOnSucceeded(workerStateEvent -> {
             tries = 0;
-            List<Mail> result = getUpdatedMailList.getLastValue();
-            if (result != null && !result.isEmpty()) {
-                if (failedMailList) {
-                    System.out.println("RECOVER FROM FAILURE");
+            newBtn.setDisable(false);
+            mailbox.setAddress(givenMailAddress);
+
+            List<Mail> result = getMailList.getValue();
+
+            if(firstRequest) {
+                firstRequest = false;
+                if (result != null) {
                     mailbox.setCurrentMailList(result);
                     mailListView.setItems(mailbox.currentMailListProperty());
-                    mailListView.scrollTo(mailListView.getItems().size() - 1);
-
-                    failedMailList = false;
-                } else {
-                    for(Mail m: result){
+                }
+            } else {
+                if (result != null) {
+                    for (Mail m : result) {
                         m.setNewMail(true);
                         mailbox.addCurrentMailList(m);
                     }
-
-                    mailListView.scrollTo(mailListView.getItems().size() - 1);
                 }
             }
+
+            mailListView.scrollTo(mailListView.getItems().size() - 1);
+
+            if(result != null)
+                emailCounter.getAndAdd(result.size());
 
             if (reconnectionAlert != null)
                 reconnectionAlert.close();
         });
 
-        getUpdatedMailList.start();
+        getMailList.start();
     }
 
-    private class GetUpdatedMailList extends ScheduledService<List<Mail>> {
+    private class GetMailList extends ScheduledService<List<Mail>> {
+        private final String givenAddress;
 
-        private GetUpdatedMailList(){
+        private GetMailList(String givenAddress){
             updateMailListTask = this;
+            this.givenAddress = givenAddress;
         }
 
         @Override
@@ -260,8 +170,9 @@ public class Requester {
                 protected List<Mail> call() throws IOException, ClassNotFoundException, AddressNotFound, InternalError {
                     try{
                         newConnectionAndStreams();
-                        toServer.writeObject(new Request(Request.UPDATE_MAILLIST,
-                                                         mailbox.getAddress()));
+                        toServer.writeObject(new Request(Request.MAILLIST,
+                                                         givenAddress,
+                                                         emailCounter.get()));
                         return handleResponse(fromServer.readObject());
                     } finally {
                         closeAll();
@@ -273,13 +184,18 @@ public class Requester {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    /**
+     * Send a delete mail request and remove it from the mail list
+     * @param singleMailController in order to call the hide function that make the delete animation possible
+     */
     public void deleteCurrentMail(SingleMailController singleMailController) {
 
         DeleteCurrentMail deleteCurrentMail = new DeleteCurrentMail();
 
         deleteCurrentMail.setOnSucceeded(workerStateEvent -> {
+            emailCounter.decrementAndGet();
             mailbox.removeCurrentMail();
-            singleMailController.hide();;
+            singleMailController.hide();
         });
 
         deleteCurrentMail.setOnFailed(workerStateEvent -> {
@@ -325,9 +241,14 @@ public class Requester {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    /**
+     * Send a send mail request and add it to the mail list
+     * @param newMailController in order to call the hide function that make the send animation possible
+     */
     public void sendCurrentMail(NewMailController newMailController) {
         SendCurrentMail sendCurrentMail = new SendCurrentMail();
 
+        // Title and recipients have to be valued
         if(mailbox.getCurrentMail().getRecipients().isEmpty() || mailbox.getCurrentMail().getTitle() == null){
             Alert alert = informationAlert("Wrong email");
             alert.setContentText("Mail addresses and Title can't be empty!");
@@ -336,7 +257,7 @@ public class Requester {
             return;
         }
 
-
+        // Inserted emails have to be real mail addresses
         for(String recipient : mailbox.getCurrentMail().getRecipients()){
             if(!validate(recipient)) {
                 Alert alert = informationAlert("Wrong email");
@@ -364,9 +285,11 @@ public class Requester {
                         "redo the login one");
                 notConnected.show();
             } else if (exc instanceof AddressNotFound) {
+                String addressNotFound = ((AddressNotFound) exc).getAddress();
+
                 Alert wrongAddress = warningAlert("Address not found");
-                wrongAddress.setContentText("The inserted mail address " + ((AddressNotFound) exc).getAddress() + " doesn't exist!\n" +
-                        "The email was sent only to addresses before " + ((AddressNotFound) exc).getAddress());
+                wrongAddress.setContentText("The inserted mail address " + addressNotFound + " doesn't exist!\n" +
+                        "The email was sent only to addresses before " + addressNotFound);
                 wrongAddress.show();
             } else {
                 exc.printStackTrace();
@@ -418,6 +341,7 @@ public class Requester {
             fromServer.close();
     }
 
+    // Check if a given string is an email address properly formatted
     private static boolean validate(String email) {
         Matcher matcher = EMAIL_ADDRESS_REGEX.matcher(email);
         return matcher.find();
@@ -425,6 +349,7 @@ public class Requester {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    // Handle the responses received by the server
     private List<Mail> handleResponse(Object o) throws InternalError, AddressNotFound {
         if(!(o instanceof Response)) throw new InternalError();
         Response r = (Response) o;

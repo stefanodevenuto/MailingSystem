@@ -52,13 +52,13 @@ public class Mailboxes {
         mailboxList.put(address, m);
     }
 
-    public List<Mail> getMailboxMailList(String address, boolean mode) throws NoSuchElementException, InternalError{
+    public List<Mail> getMailboxMailList(String address, int skipLines) throws NoSuchElementException, InternalError{
         Mailbox m = mailboxList.get(address);
         if(m == null){
             System.out.println("GetMailList: UTENTE NON ESISTE");
             throw new NoSuchElementException();
         }
-        return m.getMailList(mode);
+        return m.getMailList(skipLines);
     }
 
     public void updateMailboxMailList(String address, Mail mail) throws NoSuchElementException, InternalError{
@@ -73,7 +73,7 @@ public class Mailboxes {
     public void deleteMailboxMail(String address, int mailID) throws NoSuchElementException, InternalError{
         Mailbox m = mailboxList.get(address);
         if(m == null){
-            System.out.println("Update: UTENTE NON ESISTE");
+            System.out.println("Delete: UTENTE NON ESISTE");
             throw new NoSuchElementException();
         }
         m.deleteMail(mailID);
@@ -82,8 +82,6 @@ public class Mailboxes {
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private class Mailbox {
-        private AtomicInteger SKIP_LINES = new AtomicInteger(0); // TODO: valutare se assegnare questo alla singola connessione
-        // per evitare problemi sulla connessione dello stesso account contemporaneamente
         private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
         private final Lock readLock = readWriteLock.readLock();
         private final Lock writeLock = readWriteLock.writeLock();
@@ -93,7 +91,7 @@ public class Mailboxes {
 
         private Mailbox(String path) {
             this.path = path + ".csv";
-            try(BufferedReader br = new BufferedReader(new FileReader(path))) {
+            try(BufferedReader br = new BufferedReader(new FileReader(this.path))) {
 
                 String lastLine = "";
                 String currentLine = "";
@@ -110,7 +108,7 @@ public class Mailboxes {
             }
         }
 
-        private List<Mail> getMailList(boolean mode) {
+        private List<Mail> getMailList(int skipLines) {
             List<Mail> mailList = new ArrayList<>();
             readLock.lock();
             try {
@@ -129,25 +127,17 @@ public class Mailboxes {
                     return false;
                 };
 
-                if(mode){
-                    csvToBean = new CsvToBeanBuilder<Mail>(bufferedReader)
-                            .withType(Mail.class)
-                            .withIgnoreLeadingWhiteSpace(true)
-                            .withFilter(ignoreEmptyLines)
-                            .withSkipLines(SKIP_LINES.get())
-                            .build();
-                }else{
-                    SKIP_LINES.set(0); // To avoid the re-login update list view fail
-                    csvToBean = new CsvToBeanBuilder<Mail>(bufferedReader)
-                            .withType(Mail.class)
-                            .withIgnoreLeadingWhiteSpace(true)
-                            .withFilter(ignoreEmptyLines)
-                            .build();
-                }
+                csvToBean = new CsvToBeanBuilder<Mail>(bufferedReader)
+                        .withType(Mail.class)
+                        .withIgnoreLeadingWhiteSpace(true)
+                        .withFilter(ignoreEmptyLines)
+                        .withSkipLines(skipLines)
+                        .build();
 
                 mailList = csvToBean.parse();
 
-                SKIP_LINES.getAndAdd(mailList.size());
+                System.out.println("Skippo: " + skipLines + " Letto: " + mailList.size());
+
                 reader.close();
 
             }catch (IOException | IllegalStateException e) {
@@ -197,13 +187,9 @@ public class Mailboxes {
                 String currentLine = "";
 
                 // Remove the mail
-                int i = -1;
-                int deletedIndex = -1;
                 while ((currentLine = br.readLine()) != null) {
-                    i++;
                     if(getIDFromLine(currentLine) != mailID){
                         tempMailList.add(currentLine);
-                        deletedIndex = i;
                     }
 
                 }
@@ -216,14 +202,6 @@ public class Mailboxes {
                 }
 
                 bw.close();
-
-                if(deletedIndex != -1 && deletedIndex < SKIP_LINES.intValue()){
-                    SKIP_LINES.decrementAndGet();
-                }
-
-
-                //  cancellazione in posizione < SKIP_LINES ==>    SKIP_LINES--;
-                //  altrimenti                              ==>    nulla
 
             }catch (Exception e) {
                 throw new InternalError();
@@ -254,8 +232,9 @@ public class Mailboxes {
     // Get the ID by matching the first value inside double quotes
     private static int getIDFromLine(String line){
         Matcher m = Pattern.compile("(?<=\")([^\"]+)(?=\")").matcher(line);
-        m.find();
-        return Integer.parseInt(m.group(1));
+        if(m.find())
+            return Integer.parseInt(m.group(1));
+        return 0;
     }
 
 }

@@ -3,6 +3,12 @@
     -fx-background: #63cdd7;
 }
 
+.list-view, .grid-pane, .button {
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+    -fx-focus-color: transparent;
+}
+
 .list-cell{
     -fx-background-color: #fafafa;
     -fx-border-style: hidden hidden solid hidden;
@@ -24,4 +30,13 @@
     -fx-border-color: #ebebeb #ebebeb #ebebeb #0089b0;
     -fx-font-weight: bold;
     -fx-border-width: 0 0 2 4;
+}
+
+.button {
+    -fx-background-color: #347893;
+    -fx-text-fill: white;
+
+    -fx-border-style: hidden hidden solid solid;
+    -fx-border-color: white white white white;
+    -fx-border-width: 2 2 2 2;
 }

@@ -106,6 +106,7 @@ public class LoginAndMailboxController {
 
         //mailListView.setItems(mailbox.currentMailListProperty());
 
+        //requester.getAndUpdateMailList(givenMailAddress, mailListView, newBtn);
         requester.getAndUpdateMailList(givenMailAddress, mailListView, newBtn);
 
         // To immediately scroll to the bottom

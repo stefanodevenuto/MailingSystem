@@ -46,4 +46,5 @@ public class Mailbox {
         currentMailProperty().set(mail);
     }
 
+
 }
