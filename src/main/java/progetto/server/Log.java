@@ -28,22 +28,27 @@ public class Log {
         setStatusText("Elaborating...");
     }
 
+    // Arrival time of request property usual methods
     public StringProperty dateTimeProperty() { return dateTime; }
     public void setLocalDateTime(String localDateTime) { dateTimeProperty().setValue(localDateTime); }
     public String getLocalDateTime() { return dateTimeProperty().get(); }
 
+    // Requester property usual methods
     public StringProperty requesterProperty() { return requester; }
     public void setRequester(String requester) { requesterProperty().setValue(requester); }
     public String getRequester() { return requesterProperty().get(); }
 
+    // Request property usual methods
     public ObjectProperty<Request> requestProperty() { return request; }
     public void setRequest(Request request) { requestProperty().setValue(request); }
     public Request getRequest() { return requestProperty().get(); }
 
+    // Status text property usual methods
     public StringProperty statusTextProperty() { return statusText; }
     public void setStatusText(String text) { statusTextProperty().setValue(text); }
     public String getStatusText() { return statusTextProperty().get(); }
 
+    // Status image property usual methods
     public ObjectProperty<Image> statusProperty() { return status; }
     public void setStatus(Image image) { status.set(image); }
     public Image getStatus() { return status.get(); }

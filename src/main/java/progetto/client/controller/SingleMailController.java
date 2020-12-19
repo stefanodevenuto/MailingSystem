@@ -113,7 +113,8 @@ public class SingleMailController {
         newMailController.show();
     }
 
-    public void initController(Mailbox mailbox, HashMap<String, Pane> screenMap, BorderPane root, Requester requester, NewMailController newMailController) {
+    public void initController(Mailbox mailbox, HashMap<String, Pane> screenMap, BorderPane root,
+                               Requester requester, NewMailController newMailController) {
         // ensure model is only set once:
         if (this.mailbox != null) {
             throw new IllegalStateException("Model can only be initialized once");

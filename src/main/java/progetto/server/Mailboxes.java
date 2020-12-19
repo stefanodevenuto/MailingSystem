@@ -21,15 +21,20 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Mailboxes {
-    private final Map<String, Mailbox> mailboxList;
-    private ObservableList<Log> logs = FXCollections.observableArrayList();
+    private final Map<String, Mailbox> mailboxList;                    // Mailboxes of all users indexed by mail address
+    private ObservableList<Log> logs =
+            FXCollections.observableArrayList();                       // List of logs
     private final String path;
 
-    public static Image LOAD;
-    public static Image TICK;
-    public static Image CROSS;
+    public static Image LOAD;                                          // Load image for image requests
+    public static Image TICK;                                          // Load image for image requests
+    public static Image CROSS;                                         // Load image for image requests
 
-
+    /**
+     * Create a new set of mailboxes for all the users
+     * @param path path to users files
+     * @throws IOException users file not found, requests' images not found
+     */
     public Mailboxes(String path) throws IOException {
         mailboxList = new HashMap<>();
         this.path = path;
@@ -47,6 +52,7 @@ public class Mailboxes {
         TICK = new Image(getClass().getResource("/progetto.server/tick.jpg").toExternalForm());
     }
 
+    // Logs property usual methods
     public ObservableList<Log> logsProperty() {
         return logs;
     }
@@ -54,11 +60,20 @@ public class Mailboxes {
         logs = current;
     }
 
+    // Create a new mailbox for an individual user
     private void newMailbox(String address) {
         Mailbox m = new Mailbox(path + address);
         mailboxList.put(address, m);
     }
 
+    /**
+     * Recover the mail list (or a portion) of a given user
+     * @param address mail address used to recover the proper mailbox
+     * @param skipLines number of mails to skip, used to avoid the recover of the entire mail list every time
+     * @return the mail list of the given address
+     * @throws NoSuchElementException when mail address is not associated with a saved user
+     * @throws InternalError in case something gone wrong
+     */
     public List<Mail> getMailboxMailList(String address, int skipLines) throws NoSuchElementException, InternalError{
         Mailbox m = mailboxList.get(address);
         if(m == null){
@@ -68,6 +83,13 @@ public class Mailboxes {
         return m.getMailList(skipLines);
     }
 
+    /**
+     * Update (new mail) a user mailbox
+     * @param address mail address used to recover the proper mailbox
+     * @param mail the new mail to be written
+     * @throws NoSuchElementException when mail address is not associated with a saved user
+     * @throws InternalError in case something gone wrong
+     */
     public void updateMailboxMailList(String address, Mail mail) throws NoSuchElementException, InternalError{
         Mailbox m = mailboxList.get(address);
         if(m == null){
@@ -77,6 +99,13 @@ public class Mailboxes {
         m.updateMailList(mail);
     }
 
+    /**
+     * Delete a mail from a mailbox
+     * @param address mail address used to recover the proper mailbox
+     * @param mailID the ID of the mail to be deleted
+     * @throws NoSuchElementException when mail address is not associated with a saved user
+     * @throws InternalError in case something gone wrong
+     */
     public void deleteMailboxMail(String address, int mailID) throws NoSuchElementException, InternalError{
         Mailbox m = mailboxList.get(address);
         if(m == null){
@@ -88,16 +117,18 @@ public class Mailboxes {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    private class Mailbox {
-        private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
-        private final Lock readLock = readWriteLock.readLock();
-        private final Lock writeLock = readWriteLock.writeLock();
+    private static class Mailbox {
+        private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();   // In order to handle the user file
+        private final Lock readLock = readWriteLock.readLock();                     // To regulate read accesses
+        private final Lock writeLock = readWriteLock.writeLock();                   // To regulate write accesses
 
-        private final String path;
-        private final AtomicInteger emailCounter = new AtomicInteger();
+        private final String path;                                                  // User file path
+        private final AtomicInteger emailCounter = new AtomicInteger();             // ID giver for the new mails
 
         private Mailbox(String path) {
             this.path = path + ".csv";
+
+            // Recover the last set MailID if the mailbox is not empty
             try(BufferedReader br = new BufferedReader(new FileReader(this.path))) {
 
                 String lastLine = "";
@@ -110,14 +141,16 @@ public class Mailboxes {
 
                 emailCounter.set(getIDFromLine(lastLine) + 1);
             } catch (IOException e){
+                // Set counter to 0 otherwise (first mail)
                 System.out.println("IOException");
                 emailCounter.set(0);
             }
         }
 
+        // Recover the mail list of the user from his file
         private List<Mail> getMailList(int skipLines) {
             List<Mail> mailList = new ArrayList<>();
-            readLock.lock();
+            readLock.lock(); // Acquires the READ lock
             try {
                 Reader reader = new FileReader(path);
                 BufferedReader bufferedReader = new ReplaceNewLineReader(reader);
@@ -133,6 +166,7 @@ public class Mailboxes {
                     return false;
                 };
 
+                // Create a new builder that maps a CSV file to a list of Mails
                 CsvToBean<Mail> csvToBean = new CsvToBeanBuilder<Mail>(bufferedReader)
                         .withType(Mail.class)
                         .withIgnoreLeadingWhiteSpace(true)
@@ -140,6 +174,7 @@ public class Mailboxes {
                         .withSkipLines(skipLines)
                         .build();
 
+                // Parse it
                 mailList = csvToBean.parse();
 
                 System.out.println("Skippo: " + skipLines + " Letto: " + mailList.size());
@@ -147,51 +182,59 @@ public class Mailboxes {
                 reader.close();
 
             }catch (IOException | IllegalStateException e) {
-                return mailList;
+                return mailList; // In case the file doesn't exist (mail list empty)
             } catch (Exception e){
-                throw new InternalError();
+                throw new InternalError();  // Something gone wrong
             } finally{
-                readLock.unlock();
+                readLock.unlock();  // In any case, unlock
             }
 
             return mailList;
         }
 
+        // Write a new mail in the user file
         private void updateMailList(Mail m) {
+
+            // Retrieve and set a new MailID
             m.setID(emailCounter.getAndIncrement());
+
+            // Replace every '\n' character to the two literal \n characters (avoid CSV parsing problems)
             String text = m.getText();
             if(text != null){
                 m.setText(text.replace("\n", "\\n"));
             }
 
-            writeLock.lock();
+            writeLock.lock();   // Acquires the WRITE lock
             try(Writer writer = Files.newBufferedWriter(Paths.get(path),
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.APPEND))
+                    StandardOpenOption.CREATE,  // If the file doesn't exists, create it (first mail)
+                    StandardOpenOption.APPEND)) // If it already exists, add the new mail
             {
 
+                // Create a new builder that maps a Mail to a CSV line
                 StatefulBeanToCsv<Mail> beanToCsv = new StatefulBeanToCsvBuilder<Mail>(writer)
                         .withEscapechar('\\')
                         .build();
 
+                // Write the new Mail
                 beanToCsv.write(m);
 
             }catch (Exception e) {
-                throw new InternalError(e.getMessage());
+                throw new InternalError(e.getMessage());    // Something gone wrong
             } finally {
-                writeLock.unlock();
+                writeLock.unlock(); // In any case, unlock
             }
         }
 
+        // Delete a mail from the user file
         private void deleteMail(int mailID){
-            writeLock.lock();
+            writeLock.lock();   // Acquires the READ lock
 
-            List<String> tempMailList = new ArrayList<>();
+            List<String> tempMailList = new ArrayList<>();  // Temporary "file"
             try {
                 BufferedReader br = new BufferedReader(new FileReader(path));
                 String currentLine = "";
 
-                // Remove the mail
+                // Copy all the mails to the "temporary file", except the one to be deleted
                 while ((currentLine = br.readLine()) != null) {
                     if(getIDFromLine(currentLine) != mailID){
                         tempMailList.add(currentLine);
@@ -200,8 +243,10 @@ public class Mailboxes {
                 }
                 br.close();
 
+                // TODO: vedere se splittare in due try per chiudere entrambi nei finally
                 BufferedWriter bw = new BufferedWriter(new FileWriter(path));
 
+                // Copy all the remaining mails to the file
                 for (String mail : tempMailList){
                     bw.write(mail + System.lineSeparator());
                 }
@@ -217,6 +262,7 @@ public class Mailboxes {
         }
     }
 
+    // Custom BufferedReader implemented to restore the '\n' character
     private static class ReplaceNewLineReader extends BufferedReader {
 
         private ReplaceNewLineReader(Reader r) {

@@ -19,15 +19,23 @@ public class MainAcceptor extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception{
-        BorderPane root = new BorderPane();
-        FXMLLoader serverLogLoader = new FXMLLoader(getClass().getResource("/progetto.server/logsTableView.fxml"));
+        BorderPane root = new BorderPane();                 // The main panel
+
+        // Recover loader of needed fxml file
+        FXMLLoader serverLogLoader =
+                new FXMLLoader(getClass().getResource("/progetto.server/logsTableView.fxml"));
         root.setCenter(serverLogLoader.load());
 
+        // Get the controller from the loader
         ServerLogController serverLogController = serverLogLoader.getController();
 
+        // Instantiate a new Model
         Mailboxes mailboxes = new Mailboxes("C:\\Users\\stefa\\Desktop\\mailboxes\\");
+
+        // Initialize the controller with the proper information and return the listener thread
         startListener = serverLogController.initController(mailboxes, executors);
 
+        // Prepare and show thr final view
         Scene scene = new Scene(root);
         primaryStage.setTitle("Server");
         primaryStage.setScene(scene);
@@ -38,8 +46,8 @@ public class MainAcceptor extends Application {
     @Override
     public void stop() throws Exception {
         super.stop();
-        startListener.closeSocket();
-        executors.shutdown();
+        startListener.closeSocket();    // Close the socket for incoming requests
+        executors.shutdown();           // Shutdown the executor service (no new requests)
     }
 
     public static void main(String[] args) { launch(args); }

@@ -56,6 +56,7 @@ public class Request implements Serializable {
     public Mail getBody() { return body; }
     public int getCounter() { return counter; }
 
+    // Properly convert the codes to explicit strings
     @Override
     public String toString() {
         String text;
