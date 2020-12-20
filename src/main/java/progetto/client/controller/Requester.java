@@ -69,13 +69,12 @@ public class Requester {
      * Set (including the logged address) and progressively update the MailList contained in the Model
      * @param givenMailAddress the mail address inserted by the user
      * @param mailListView the ListView where the result will be visualized
-     * @param newBtn the button used to create a new email, in order to make it usable in case of success
+     * @param newBtn the button used to create a new email, in order to make it usable/unusable in case of success/fail
+     * @param singleMailController used to hide the view in case of login failure
+     * @param newMailController used to hide the view in case of login failure
      */
-    public void getAndUpdateMailList(String givenMailAddress, ListView<Mail> mailListView, Button newBtn) {
-
-        if(updateMailListTask != null){
-            updateMailListTask.cancel();
-        }
+    public void getAndUpdateMailList(String givenMailAddress, ListView<Mail> mailListView, Button newBtn,
+                                     SingleMailController singleMailController, NewMailController newMailController) {
 
         // Check if the inserted text is a properly formatted mail address
         if(!validate(givenMailAddress)) {
@@ -84,6 +83,11 @@ public class Requester {
 
             alert.showAndWait();
             return;
+        }
+
+        // Cancel the previous update mail list task
+        if(updateMailListTask != null){
+            updateMailListTask.cancel();
         }
 
         GetMailList getMailList = new GetMailList(givenMailAddress);
@@ -100,12 +104,21 @@ public class Requester {
         getMailList.restartOnFailureProperty().bind(running);
 
         getMailList.setOnFailed(workerStateEvent -> {
+
+            // Disable the view if the first request (new login) gone wrong
+            if(firstRequest){
+                newBtn.setDisable(true);
+                mailbox.clearCurrentMailList();
+                singleMailController.hide();
+                newMailController.hide();
+            }
+
             Throwable exc = getMailList.getException();
             if (exc instanceof IOException) {
                 tries++;
                 message.set(connectionError + tries);
 
-                // Create the new alert box and bind tries and severity
+                // Create the new alert box and bind tries number and severity
                 if (tries == 1) {
                     reconnectionAlert = informationAlert("Connection error");
                     reconnectionAlert.contentTextProperty().bind(message);
@@ -115,8 +128,12 @@ public class Requester {
 
                 // Stop execution when the maximum tries number has been reached and change alert properties accordingly
                 if (tries == MAX_TRIES) {
+                    if(firstRequest)
+                        message.set("The server is currently down: try again later!");
+                    else
+                        message.set("The server is currently down: you can continue offline to look at your emails");
+
                     alertType.setValue(Alert.AlertType.ERROR);
-                    message.set("The server is currently down: you can continue offline to look at your emails");
                     running.set(false);
                 }
             } else if(exc instanceof AddressNotFound){
@@ -131,6 +148,7 @@ public class Requester {
         });
 
         getMailList.setOnSucceeded(workerStateEvent -> {
+
             tries = 0;
             newBtn.setDisable(false);
             mailbox.setAddress(givenMailAddress);

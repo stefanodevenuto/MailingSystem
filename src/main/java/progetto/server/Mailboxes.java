@@ -151,10 +151,8 @@ public class Mailboxes {
         private List<Mail> getMailList(int skipLines) {
             List<Mail> mailList = new ArrayList<>();
             readLock.lock(); // Acquires the READ lock
-            try {
-                Reader reader = new FileReader(path);
-                BufferedReader bufferedReader = new ReplaceNewLineReader(reader);
-                //Reader reader = Files.newBufferedReader(Paths.get("C:\\Users\\stefa\\Desktop\\" + address + ".csv"));
+            try(Reader reader = new FileReader(path);
+                BufferedReader bufferedReader = new ReplaceNewLineReader(reader)) {
 
                 // Ignores empty lines from the input
                 CsvToBeanFilter ignoreEmptyLines = strings -> {
@@ -230,8 +228,10 @@ public class Mailboxes {
             writeLock.lock();   // Acquires the READ lock
 
             List<String> tempMailList = new ArrayList<>();  // Temporary "file"
+            BufferedReader br = null;
+            BufferedWriter bw = null;
             try {
-                BufferedReader br = new BufferedReader(new FileReader(path));
+                br = new BufferedReader(new FileReader(path));
                 String currentLine = "";
 
                 // Copy all the mails to the "temporary file", except the one to be deleted
@@ -243,8 +243,7 @@ public class Mailboxes {
                 }
                 br.close();
 
-                // TODO: vedere se splittare in due try per chiudere entrambi nei finally
-                BufferedWriter bw = new BufferedWriter(new FileWriter(path));
+                bw = new BufferedWriter(new FileWriter(path));
 
                 // Copy all the remaining mails to the file
                 for (String mail : tempMailList){
@@ -256,6 +255,14 @@ public class Mailboxes {
             }catch (Exception e) {
                 throw new InternalError();
             } finally {
+                try {
+                    if(br != null)
+                        br.close();
+                    if(bw != null)
+                        bw.close();
+                } catch (Exception ignored) {
+                    // TODO: capire come gestirla qua
+                }
                 writeLock.unlock();
             }
 

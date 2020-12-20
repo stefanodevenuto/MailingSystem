@@ -156,6 +156,9 @@ public class ServerLogController {
                 // Create a new log that documents the current request
                 Log log = new Log(r.getAddress(), r, Mailboxes.LOAD);
 
+                // Add the log to the list, on order to make it visible in the table
+                mailboxes.logsProperty().add(log);
+
                 // Create and execute a new Task base on the request type
                 switch (r.getType()) {
                     case Request.SEND:{
@@ -173,10 +176,11 @@ public class ServerLogController {
                         break;
                     }
 
-                }
+                    default:{
+                        badRequestError(toClient, log);
+                    }
 
-                // Add the log to the list, on order to make it visible in the table
-                mailboxes.logsProperty().add(log);
+                }
 
             } catch (IOException | ClassNotFoundException e) {
                 //connectionError(r);
@@ -364,12 +368,24 @@ public class ServerLogController {
             Response response = new Response(Response.BAD_REQUEST);
             toClient.writeObject(response);
 
-            // TODO: log a bad request
-            //Platform.runLater(() -> mailboxes.logsProperty().add(new Log(response, request)));
-            //mailboxes.updateStatusLog(Mailboxes.FAILED, "Bad request");
         } catch (IOException e){
-            // TODO: client disconnected / problems related with connection
-            e.printStackTrace();
+            // Client disconnected, no request to update
+        }
+    }
+
+    // Send an bad request error response to the requester
+    private void badRequestError(ObjectOutputStream toClient, Log log){
+        try {
+            Response response = new Response(Response.BAD_REQUEST);
+            toClient.writeObject(response);
+
+            // Update the log associated properly
+            Platform.runLater(() -> {
+                log.setStatus(Mailboxes.CROSS);
+                log.setStatusText("Bad request type");
+            });
+        } catch (IOException e){
+            connectionError(log);
         }
     }
 

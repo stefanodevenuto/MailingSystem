@@ -107,7 +107,7 @@ public class LoginAndMailboxController {
         });
 
         // Ask the requester to get and continuously update the mail list (and the bound list view)
-        requester.getAndUpdateMailList(givenMailAddress, mailListView, newBtn);
+        requester.getAndUpdateMailList(givenMailAddress, mailListView, newBtn, singleMailController, newMailController);
 
         // To immediately scroll to the bottom
         mailListView.scrollTo(mailListView.getItems().size() - 1);

@@ -35,7 +35,14 @@
 .button {
     -fx-background-color: #347893;
     -fx-text-fill: white;
+    -fx-background-radius: 0
+}
 
+.button:hover {
+    -fx-background-color: #3f97ba;
+}
+
+#sendBtn, #forwardBtn, #replyBtn, #deleteBtn, #replyAllBtn {
     -fx-border-style: hidden hidden solid solid;
     -fx-border-color: white white white white;
     -fx-border-width: 2 2 2 2;
