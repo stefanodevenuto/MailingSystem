@@ -13,8 +13,12 @@ import progetto.client.controller.SingleMailController;
 import progetto.client.model.Mailbox;
 
 import java.util.HashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Main extends Application {
+    private static final int MAX_THREADS = 3;
+    ExecutorService executors = Executors.newFixedThreadPool(MAX_THREADS);
 
     @Override
     public void start(Stage primaryStage) throws Exception{
@@ -50,7 +54,7 @@ public class Main extends Application {
 
         // Instantiate a new Model and initialize the controllers
         Mailbox mailbox = new Mailbox();
-        Requester requester = new Requester("localhost", 4444, mailbox);
+        Requester requester = new Requester("localhost", 4444, mailbox, executors);
 
         loginAndMailboxController.initController(mailbox, screenMap, root, requester, singleMailController, newMailController);
         singleMailController.initController(mailbox, screenMap, root, requester, newMailController);
@@ -61,6 +65,12 @@ public class Main extends Application {
         primaryStage.setScene(scene);
         primaryStage.setResizable(false);
         primaryStage.show();
+    }
+
+    @Override
+    public void stop() throws Exception {
+        super.stop();
+        executors.shutdown();
     }
 
     public static void main(String[] args) { launch(args); }

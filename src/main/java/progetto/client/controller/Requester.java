@@ -22,20 +22,20 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.ExecutorService;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Requester {
     private final static int MAX_TRIES = 10;                            // Max reconnection tries
     private static final String connectionError = "Reconnection try number: ";
-    public static final Pattern EMAIL_ADDRESS_REGEX =
+    public static final Pattern EMAIL_ADDRESS_REGEX =                   // Mail address regex
             Pattern.compile("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,6}$", Pattern.CASE_INSENSITIVE);
-            // Mail address regex
 
     private final String host;                                          // Current host name / IP
     private final int port;                                             // Current port
     private final Mailbox mailbox;                                      // The model
+    private final ExecutorService executors;
 
     private Socket server;                                              // Connection with the server
     private ObjectOutputStream toServer;                                // Output stream to the server
@@ -43,9 +43,6 @@ public class Requester {
 
     private int tries = 0;                                              // Current reconnection try
     private Alert reconnectionAlert = null;                             // Reconnection alert in case of failure
-
-    private final AtomicInteger emailCounter =                          // Read mails counter
-            new AtomicInteger(0);
 
     private final SimpleStringProperty message =                        // Message of the alert property
             new SimpleStringProperty();
@@ -55,12 +52,14 @@ public class Requester {
     private GetMailList updateMailListTask = null;                      // Reference to the old mail list task
     private boolean firstRequest;                                       // Reveal if it's the first mail list request
 
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    public Requester(String host, int port, Mailbox mailbox){
+    public Requester(String host, int port, Mailbox mailbox, ExecutorService executors){
         this.host = host;
         this.port = port;
         this.mailbox = mailbox;
+        this.executors = executors;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -91,6 +90,7 @@ public class Requester {
         }
 
         GetMailList getMailList = new GetMailList(givenMailAddress);
+        getMailList.setExecutor(executors);
 
         // Initialize and re-initialize every user oriented variable
         tries = 0;
@@ -101,10 +101,17 @@ public class Requester {
 
         // Bind boolean property to stop execution problems comes
         SimpleBooleanProperty running = new SimpleBooleanProperty(true);
-        getMailList.setPeriod(Duration.seconds(3));
+        SimpleObjectProperty<Duration> period = new SimpleObjectProperty<>(Duration.seconds(3));
+
         getMailList.restartOnFailureProperty().bind(running);
+        getMailList.periodProperty().bind(period);
 
         getMailList.setOnFailed(workerStateEvent -> {
+            // Update state
+            mailbox.setConnected(false);
+
+            // In order to not wait 3 seconds for every reconnection attempt
+            period.set(Duration.seconds(0));
 
             // Disable the view if the first request (new login) gone wrong
             if(firstRequest){
@@ -149,7 +156,10 @@ public class Requester {
         });
 
         getMailList.setOnSucceeded(workerStateEvent -> {
+            // Reset the original period
+            period.set(Duration.seconds(3));
 
+            mailbox.setConnected(true);
             tries = 0;
             newBtn.setDisable(false);
             mailbox.setAddress(givenMailAddress);
@@ -204,6 +214,7 @@ public class Requester {
         });
 
         getMailList.start();
+
     }
 
     // Create a new connection, send the MAILLIST request and return the mail list
@@ -246,7 +257,16 @@ public class Requester {
      */
     public void deleteCurrentMail(SingleMailController singleMailController) {
 
+        if(!mailbox.getConnected()){
+            Alert notConnected = errorAlert("Not connected");
+            notConnected.setContentText("The client is not connected: wait the reconnection process or " +
+                    "redo the login process");
+            notConnected.show();
+            return;
+        }
+
         DeleteCurrentMail deleteCurrentMail = new DeleteCurrentMail();
+        deleteCurrentMail.setExecutor(executors);
 
         deleteCurrentMail.setOnSucceeded(workerStateEvent -> {
             // Decrement the window of current mails accordingly to the elimination of the mail on the server
@@ -307,7 +327,16 @@ public class Requester {
      * @param newMailController in order to call the hide function that make the send animation possible
      */
     public void sendCurrentMail(NewMailController newMailController) {
+        if(!mailbox.getConnected()){
+            Alert notConnected = errorAlert("Not connected");
+            notConnected.setContentText("The client is not connected: wait the reconnection process or " +
+                    "redo the login process");
+            notConnected.show();
+            return;
+        }
+
         SendCurrentMail sendCurrentMail = new SendCurrentMail();
+        sendCurrentMail.setExecutor(executors);
 
         // Check if Title and Recipients are valued
         if(mailbox.getCurrentMail().getRecipients().isEmpty() || mailbox.getCurrentMail().getTitle() == null){

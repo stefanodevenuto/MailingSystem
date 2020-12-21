@@ -10,6 +10,7 @@ import javafx.collections.ObservableList;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Mailbox {
 
@@ -20,6 +21,7 @@ public class Mailbox {
     private final ObjectProperty<Mail> currentMail =                          // The current mail of the mail list
             new SimpleObjectProperty<>(null);
 
+    private boolean connected = false;
 
     // Address property usual methods
     public StringProperty addressProperty() { return this.address; }
@@ -50,4 +52,11 @@ public class Mailbox {
         currentMailProperty().set(mail);
     }
 
+    public synchronized void setConnected(boolean connected) {
+        this.connected = connected;
+    }
+
+    public synchronized boolean getConnected() {
+        return connected;
+    }
 }
