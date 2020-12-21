@@ -99,6 +99,11 @@ public class Requester {
         firstRequest = true;
         alertType.setValue(Alert.AlertType.INFORMATION);
 
+        newBtn.setDisable(true);
+        mailbox.clearCurrentMailList();
+        singleMailController.hide();
+        newMailController.hide();
+
         // Bind boolean property to stop execution problems comes
         SimpleBooleanProperty running = new SimpleBooleanProperty(true);
         SimpleObjectProperty<Duration> period = new SimpleObjectProperty<>(Duration.seconds(3));
@@ -112,14 +117,6 @@ public class Requester {
 
             // In order to not wait 3 seconds for every reconnection attempt
             period.set(Duration.seconds(0));
-
-            // Disable the view if the first request (new login) gone wrong
-            if(firstRequest){
-                newBtn.setDisable(true);
-                mailbox.clearCurrentMailList();
-                singleMailController.hide();
-                newMailController.hide();
-            }
 
             Throwable exc = getMailList.getException();
             if (exc instanceof IOException) {

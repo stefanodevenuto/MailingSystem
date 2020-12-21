@@ -93,7 +93,7 @@ public class ServerLogController {
 
     public class StartListener implements Runnable{
 
-        private ServerSocket acceptor = null;       // Acceptor socket
+        private ServerSocket acceptor = null;                   // Acceptor socket
 
         @Override
         public void run() {
@@ -109,7 +109,7 @@ public class ServerLogController {
                     executors.execute(requestsHandler);
                 }
             } catch (IOException e) {
-                // Socket is closed
+                // Socket is closed // TODO: capire se va bene una cosa così
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -177,23 +177,23 @@ public class ServerLogController {
                     }
 
                     default:{
-                        badRequestError(toClient, log);
+                        badRequestTypeError(toClient, log);
                     }
 
                 }
 
             } catch (IOException | ClassNotFoundException e) {
                 //connectionError(r);
-                e.printStackTrace();
+                //e.printStackTrace(); // TODO: capire se va bene una cosa così
             }
         }
     }
 
     // Recover the mail list and send it to the requester
     private class SendMailList implements Runnable {
-        private final ObjectOutputStream toClient;              // The stream to the client
-        private final Request request;                          // The came request
-        private final Log log;                                  // The log associated
+        private final ObjectOutputStream toClient;                   // The stream to the client
+        private final Request request;                               // The came request
+        private final Log log;                                       // The log associated
 
         private SendMailList(ObjectOutputStream toClient, Request request, Log log) {
             this.toClient = toClient;
@@ -234,7 +234,6 @@ public class ServerLogController {
         public void run() {
             String lastAddress = null;
             try {
-
                 // Recover the mail
                 Mail newMail = request.getBody();
 
@@ -258,9 +257,9 @@ public class ServerLogController {
 
     // Delete a mail based in his ID
     private class DeleteMail implements Runnable {
-        private final ObjectOutputStream toClient;                      // The stream to the client
-        private final Request request;                                  // The came request
-        private final Log log;                                          // The log associated
+        private final ObjectOutputStream toClient;                  // The stream to the client
+        private final Request request;                              // The came request
+        private final Log log;                                      // The log associated
 
         private DeleteMail(ObjectOutputStream toClient, Request request, Log log) {
             this.toClient = toClient;
@@ -271,7 +270,6 @@ public class ServerLogController {
         @Override
         public void run() {
             try {
-
                 // Delete the mail from the mail list
                 mailboxes.deleteMailboxMail(request.getAddress(), request.getBody().getID());
 
@@ -363,18 +361,7 @@ public class ServerLogController {
     }
 
     // Send an bad request error response to the requester
-    private void badRequestError(ObjectOutputStream toClient){
-        try {
-            Response response = new Response(Response.BAD_REQUEST);
-            toClient.writeObject(response);
-
-        } catch (IOException e){
-            // Client disconnected, no request to update
-        }
-    }
-
-    // Send an bad request error response to the requester
-    private void badRequestError(ObjectOutputStream toClient, Log log){
+    private void badRequestTypeError(ObjectOutputStream toClient, Log log){
         try {
             Response response = new Response(Response.BAD_REQUEST);
             toClient.writeObject(response);
@@ -386,6 +373,17 @@ public class ServerLogController {
             });
         } catch (IOException e){
             connectionError(log);
+        }
+    }
+
+    // Send an bad request error response to the requester
+    private void badRequestError(ObjectOutputStream toClient){
+        try {
+            Response response = new Response(Response.BAD_REQUEST);
+            toClient.writeObject(response);
+
+        } catch (IOException e){
+            // Client disconnected, no request to update
         }
     }
 

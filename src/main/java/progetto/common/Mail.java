@@ -25,7 +25,7 @@ public class Mail implements Externalizable  {
     @CsvBindByPosition(position = 0)
     private int ID;
 
-    @CsvCustomBindByPosition(position = 1, converter = StringPropertyConverter.class) // In order to parse it to CSV
+    @CsvCustomBindByPosition(position = 1, converter = StringPropertyConverter.class)    // In order to parse it to CSV
     private final StringProperty title = new SimpleStringProperty();                     // Title of the Mail
 
     @CsvCustomBindByPosition(position = 2, converter = StringPropertyConverter.class)
@@ -145,8 +145,4 @@ public class Mail implements Externalizable  {
         setRecipients((List<String>) in.readObject());
     }
 
-    @Override
-    public String toString() {
-        return "MailTitle: "+ title.get();
-    }
 }

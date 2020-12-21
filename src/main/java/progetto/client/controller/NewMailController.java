@@ -154,6 +154,7 @@ public class NewMailController {
         System.out.println("Showed show: " + showed);
         if(!showed){
             gridPane.setTranslateX(0);
+            gridPane.setVisible(true);
             showed = true;
         }
     }
@@ -165,4 +166,5 @@ public class NewMailController {
             hideGridPane.play();
         }
     }
+
 }

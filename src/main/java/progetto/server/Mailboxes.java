@@ -177,8 +177,6 @@ public class Mailboxes {
 
                 System.out.println("Skippo: " + skipLines + " Letto: " + mailList.size());
 
-                reader.close();
-
             }catch (IOException | IllegalStateException e) {
                 return mailList; // In case the file doesn't exist (mail list empty)
             } catch (Exception e){

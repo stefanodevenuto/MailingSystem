@@ -17,13 +17,7 @@ public class ObservableListConverter extends AbstractBeanField<ObservableList<St
     // The recipients' addresses can't contain commas (,)
     @Override
     public Object convert(String value) {
-        ArrayList<String> a = new ArrayList<>(Arrays.asList(value.split(",")));
-
-        for(String b : a){
-            System.out.println(b);
-        }
-
-        return FXCollections.observableArrayList(a);
+        return FXCollections.observableArrayList(new ArrayList<>(Arrays.asList(value.split(","))));
     }
 
     @Override
