@@ -13,12 +13,13 @@ import java.util.List;
 
 public class Mailbox {
 
-    private final SimpleStringProperty address =                        // The current logged user
+    private final SimpleStringProperty address =                              // The current logged user
             new SimpleStringProperty();
-    private ObservableList<Mail> currentMailList =                      // The current mail list
+    private final ObservableList<Mail> currentMailList =                      // The current mail list
             FXCollections.observableArrayList(new ArrayList<>());
-    private final ObjectProperty<Mail> currentMail =                    // The current mail of the mail list
+    private final ObjectProperty<Mail> currentMail =                          // The current mail of the mail list
             new SimpleObjectProperty<>(null);
+
 
     // Address property usual methods
     public StringProperty addressProperty() { return this.address; }
@@ -27,11 +28,15 @@ public class Mailbox {
 
     // Current mail list property usual methods
     public ObservableList<Mail> currentMailListProperty() { return currentMailList; }
-    public synchronized void setCurrentMailList(List<Mail> current) {
+    /*public synchronized void setCurrentMailList(List<Mail> current) {
+        System.out.println("Setting: ");
+        for(Mail m : current)
+            System.out.print(m + " ");
         currentMailList = FXCollections.observableArrayList(current);
-    }
+    }*/
     public synchronized void addCurrentMailList(Mail mail){ currentMailList.add(mail); }
-    public List<Mail> getCurrentMailList() { return new ArrayList<>(currentMailListProperty()); }
+    //public List<Mail> getCurrentMailList() { return new ArrayList<>(currentMailListProperty()); }
+    public synchronized void removeCurrentMail(){ currentMailList.remove(getCurrentMail()); }
     public synchronized void clearCurrentMailList() { currentMailListProperty().clear(); }
     public synchronized int getSizeCurrentMailList() { return currentMailListProperty().size(); }
 
@@ -44,7 +49,5 @@ public class Mailbox {
     public void setCurrentMail(Mail mail) {
         currentMailProperty().set(mail);
     }
-    public synchronized void removeCurrentMail(){ currentMailList.remove(getCurrentMail()); }
-
 
 }

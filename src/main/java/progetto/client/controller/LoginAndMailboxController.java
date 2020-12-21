@@ -106,6 +106,9 @@ public class LoginAndMailboxController {
             }
         });
 
+        // Bind the mails in the mail list to the mail list view
+        mailListView.setItems(mailbox.currentMailListProperty());
+
         // Ask the requester to get and continuously update the mail list (and the bound list view)
         requester.getAndUpdateMailList(givenMailAddress, mailListView, newBtn, singleMailController, newMailController);
 

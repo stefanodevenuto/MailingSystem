@@ -144,4 +144,9 @@ public class Mail implements Externalizable  {
         setDateOfDispatch((LocalDate) in.readObject());
         setRecipients((List<String>) in.readObject());
     }
+
+    @Override
+    public String toString() {
+        return "MailTitle: "+ title.get();
+    }
 }

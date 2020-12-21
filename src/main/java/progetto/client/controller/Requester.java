@@ -94,7 +94,8 @@ public class Requester {
 
         // Initialize and re-initialize every user oriented variable
         tries = 0;
-        emailCounter.set(0);
+        //emailCounter.set(0);
+        mailbox.clearCurrentMailList();
         firstRequest = true;
         alertType.setValue(Alert.AlertType.INFORMATION);
 
@@ -156,11 +157,14 @@ public class Requester {
             // Recover the result/mail list
             List<Mail> result = getMailList.getValue();
 
-            if(firstRequest) { // Set the current mail list if it's the first mail list request sent
+
+            /*if(firstRequest) { // Set the current mail list if it's the first mail list request sent
                 firstRequest = false;
                 if (result != null) {
-                    mailbox.setCurrentMailList(result);
-                    mailListView.setItems(mailbox.currentMailListProperty());
+                    //mailbox.setCurrentMailList(result);
+                    for(Mail m : result)
+                        mailbox.addCurrentMailList(m);
+                    //mailListView.setItems(mailbox.currentMailListProperty());
                 }
             } else { // Add to the existing one otherwise
                 if (result != null) {
@@ -169,15 +173,29 @@ public class Requester {
                         mailbox.addCurrentMailList(m);
                     }
                 }
+            }*/
+
+            if(result != null){
+                for (Mail m : result) {
+                    m.setNewMail(!firstRequest);
+                    mailbox.addCurrentMailList(m);
+                }
+
+                if(!result.isEmpty())
+                    mailListView.scrollTo(mailListView.getItems().size() - 1);
+
+                if(firstRequest){
+                    firstRequest = false;
+                }
             }
 
             // In order to move the window of received mails
-            if(result != null){
-                emailCounter.getAndAdd(result.size());
+            /*if(result != null){
+                //emailCounter.getAndAdd(result.size());
                 if(!result.isEmpty())
                     // To immediately scroll to the bottom
                     mailListView.scrollTo(mailListView.getItems().size() - 1);
-            }
+            }*/
 
 
             // Close the reconnection alert if an error occurred previously
@@ -206,8 +224,12 @@ public class Requester {
                         newConnectionAndStreams();
                         toServer.writeObject(new Request(Request.MAILLIST,
                                                          givenAddress,
-                                                         emailCounter.get()/*mailbox.getSizeCurrentMailList()*/));
-                        return handleResponse(fromServer.readObject());
+                                                         /*emailCounter.get()*/mailbox.getSizeCurrentMailList()));
+                        List<Mail> a = handleResponse(fromServer.readObject());
+                        for(Mail m: a){
+                            System.out.println("In create task: " + m);
+                        }
+                        return a;
                     } finally {
                         closeAll();
                     }
@@ -228,7 +250,7 @@ public class Requester {
 
         deleteCurrentMail.setOnSucceeded(workerStateEvent -> {
             // Decrement the window of current mails accordingly to the elimination of the mail on the server
-            emailCounter.decrementAndGet();
+            //emailCounter.decrementAndGet();
 
             mailbox.removeCurrentMail();
             singleMailController.hide();
