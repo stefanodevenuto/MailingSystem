@@ -32,7 +32,8 @@ public class Mailbox {
     }
     public synchronized void addCurrentMailList(Mail mail){ currentMailList.add(mail); }
     public List<Mail> getCurrentMailList() { return new ArrayList<>(currentMailListProperty()); }
-    public void clearCurrentMailList() { currentMailListProperty().clear(); }
+    public synchronized void clearCurrentMailList() { currentMailListProperty().clear(); }
+    public synchronized int getSizeCurrentMailList() { return currentMailListProperty().size(); }
 
 
     // Current mail property usual methods

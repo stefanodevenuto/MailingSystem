@@ -206,7 +206,7 @@ public class Requester {
                         newConnectionAndStreams();
                         toServer.writeObject(new Request(Request.MAILLIST,
                                                          givenAddress,
-                                                         emailCounter.get()));
+                                                         emailCounter.get()/*mailbox.getSizeCurrentMailList()*/));
                         return handleResponse(fromServer.readObject());
                     } finally {
                         closeAll();

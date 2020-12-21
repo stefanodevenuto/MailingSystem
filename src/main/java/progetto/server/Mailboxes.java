@@ -255,6 +255,7 @@ public class Mailboxes {
             }catch (Exception e) {
                 throw new InternalError();
             } finally {
+                writeLock.unlock();
                 try {
                     if(br != null)
                         br.close();
@@ -263,7 +264,6 @@ public class Mailboxes {
                 } catch (Exception ignored) {
                     // TODO: capire come gestirla qua
                 }
-                writeLock.unlock();
             }
 
         }
