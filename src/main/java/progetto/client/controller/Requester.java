@@ -35,7 +35,6 @@ public class Requester {
     private final String host;                                          // Current host name / IP
     private final int port;                                             // Current port
     private final Mailbox mailbox;                                      // The model
-    private final ExecutorService executors;
 
     private Socket server;                                              // Connection with the server
     private ObjectOutputStream toServer;                                // Output stream to the server
@@ -55,11 +54,10 @@ public class Requester {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    public Requester(String host, int port, Mailbox mailbox, ExecutorService executors){
+    public Requester(String host, int port, Mailbox mailbox){
         this.host = host;
         this.port = port;
         this.mailbox = mailbox;
-        this.executors = executors;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -90,33 +88,28 @@ public class Requester {
         }
 
         GetMailList getMailList = new GetMailList(givenMailAddress);
-        getMailList.setExecutor(executors);
 
         // Initialize and re-initialize every user oriented variable
         tries = 0;
-        //emailCounter.set(0);
         mailbox.clearCurrentMailList();
         firstRequest = true;
         alertType.setValue(Alert.AlertType.INFORMATION);
 
         newBtn.setDisable(true);
-        mailbox.clearCurrentMailList();
         singleMailController.hide();
         newMailController.hide();
 
         // Bind boolean property to stop execution problems comes
         SimpleBooleanProperty running = new SimpleBooleanProperty(true);
-        SimpleObjectProperty<Duration> period = new SimpleObjectProperty<>(Duration.seconds(3));
 
         getMailList.restartOnFailureProperty().bind(running);
-        getMailList.periodProperty().bind(period);
+        getMailList.setPeriod(Duration.seconds(3));
 
         getMailList.setOnFailed(workerStateEvent -> {
+
             // Update state
             mailbox.setConnected(false);
 
-            // In order to not wait 3 seconds for every reconnection attempt
-            period.set(Duration.seconds(0));
 
             Throwable exc = getMailList.getException();
             if (exc instanceof IOException) {
@@ -145,6 +138,9 @@ public class Requester {
                 // Stop the execution if the user inserted a mail address not present
                 wrongAddress(((AddressNotFound) exc).getAddress()).show();
                 running.set(false);
+            } else if (exc instanceof BadRequest) {
+                badRequest().show();
+                running.set(false);
             } else {
                 // Stop the execution if server internal errors arrive
                 internalError().show();
@@ -153,34 +149,15 @@ public class Requester {
         });
 
         getMailList.setOnSucceeded(workerStateEvent -> {
-            // Reset the original period
-            period.set(Duration.seconds(3));
 
             mailbox.setConnected(true);
+            mailbox.setAddress(givenMailAddress);
+
             tries = 0;
             newBtn.setDisable(false);
-            mailbox.setAddress(givenMailAddress);
 
             // Recover the result/mail list
             List<Mail> result = getMailList.getValue();
-
-
-            /*if(firstRequest) { // Set the current mail list if it's the first mail list request sent
-                firstRequest = false;
-                if (result != null) {
-                    //mailbox.setCurrentMailList(result);
-                    for(Mail m : result)
-                        mailbox.addCurrentMailList(m);
-                    //mailListView.setItems(mailbox.currentMailListProperty());
-                }
-            } else { // Add to the existing one otherwise
-                if (result != null) {
-                    for (Mail m : result) {
-                        m.setNewMail(true);
-                        mailbox.addCurrentMailList(m);
-                    }
-                }
-            }*/
 
             if(result != null){
                 for (Mail m : result) {
@@ -195,15 +172,6 @@ public class Requester {
                     firstRequest = false;
                 }
             }
-
-            // In order to move the window of received mails
-            /*if(result != null){
-                //emailCounter.getAndAdd(result.size());
-                if(!result.isEmpty())
-                    // To immediately scroll to the bottom
-                    mailListView.scrollTo(mailListView.getItems().size() - 1);
-            }*/
-
 
             // Close the reconnection alert if an error occurred previously
             if (reconnectionAlert != null)
@@ -227,17 +195,14 @@ public class Requester {
         protected Task<List<Mail>> createTask() {
             return new Task<>() {
                 @Override
-                protected List<Mail> call() throws IOException, ClassNotFoundException, AddressNotFound, InternalError {
+                protected List<Mail> call() throws IOException, ClassNotFoundException, AddressNotFound,
+                        InternalError, BadRequest {
                     try{
                         newConnectionAndStreams();
                         toServer.writeObject(new Request(Request.MAILLIST,
                                                          givenAddress,
-                                                         /*emailCounter.get()*/mailbox.getSizeCurrentMailList()));
-                        List<Mail> a = handleResponse(fromServer.readObject());
-                        for(Mail m: a){
-                            System.out.println("In create task: " + m);
-                        }
-                        return a;
+                                                         mailbox.getSizeCurrentMailList()));
+                        return handleResponse(fromServer.readObject());
                     } finally {
                         closeAll();
                     }
@@ -263,12 +228,8 @@ public class Requester {
         }
 
         DeleteCurrentMail deleteCurrentMail = new DeleteCurrentMail();
-        deleteCurrentMail.setExecutor(executors);
 
         deleteCurrentMail.setOnSucceeded(workerStateEvent -> {
-            // Decrement the window of current mails accordingly to the elimination of the mail on the server
-            //emailCounter.decrementAndGet();
-
             mailbox.removeCurrentMail();
             singleMailController.hide();
         });
@@ -285,6 +246,8 @@ public class Requester {
             } else if (exc instanceof AddressNotFound) {
                 // Show the address not found alert if a not present address have been inserted
                 wrongAddress(((AddressNotFound) exc).getAddress()).show();
+            } else if (exc instanceof BadRequest) {
+                badRequest().show();
             } else {
                 internalError().show();
             }
@@ -300,7 +263,8 @@ public class Requester {
         protected Task<Void> createTask() {
             return new Task<>() {
                 @Override
-                protected Void call() throws IOException, ClassNotFoundException, InternalError, AddressNotFound {
+                protected Void call() throws IOException, ClassNotFoundException, InternalError,
+                        AddressNotFound, BadRequest {
                     try {
                         newConnectionAndStreams();
                         toServer.writeObject(new Request(Request.DELETE,
@@ -333,7 +297,6 @@ public class Requester {
         }
 
         SendCurrentMail sendCurrentMail = new SendCurrentMail();
-        sendCurrentMail.setExecutor(executors);
 
         // Check if Title and Recipients are valued
         if(mailbox.getCurrentMail().getRecipients().isEmpty() || mailbox.getCurrentMail().getTitle() == null){
@@ -383,8 +346,9 @@ public class Requester {
                 wrongAddress.setContentText("The inserted mail address " + addressNotFound + " doesn't exist!\n" +
                         "The email was sent only to addresses before " + addressNotFound);
                 wrongAddress.show();
+            } else if (exc instanceof BadRequest) {
+                badRequest().show();
             } else {
-                exc.printStackTrace();
                 internalError().show();
             }
         });
@@ -399,7 +363,8 @@ public class Requester {
         protected Task<Void> createTask() {
             return new Task<>() {
                 @Override
-                protected Void call() throws IOException, ClassNotFoundException, InternalError, AddressNotFound {
+                protected Void call() throws IOException, ClassNotFoundException, InternalError,
+                        AddressNotFound,BadRequest {
                     try {
                         newConnectionAndStreams();
                         toServer.writeObject(new Request(Request.SEND,
@@ -450,7 +415,7 @@ public class Requester {
      * @throws InternalError when the server have problems
      * @throws AddressNotFound when one or more address were not found
      */
-    private List<Mail> handleResponse(Object rawResponse) throws InternalError, AddressNotFound {
+    private List<Mail> handleResponse(Object rawResponse) throws InternalError, AddressNotFound, BadRequest {
         if(!(rawResponse instanceof Response)) throw new InternalError();
         Response r = (Response) rawResponse;
         switch (r.getCode()){
@@ -462,10 +427,16 @@ public class Requester {
                 throw new AddressNotFound(r.getError());
             }
 
+            case Response.BAD_REQUEST:{
+                throw new BadRequest();
+            }
+
             default:
                 throw new InternalError();
         }
     }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     // Custom exception class created to express the address not found event, combined with the address in question
     private static class AddressNotFound extends Exception {
@@ -478,6 +449,14 @@ public class Requester {
 
         public String getAddress() {
             return address;
+        }
+    }
+
+    // Custom exception class created to express the bad request event
+    private static class BadRequest extends Exception {
+
+        private BadRequest(){
+            super("Bad request sent");
         }
     }
 
@@ -516,6 +495,15 @@ public class Requester {
         alert.setTitle("Wrong Address");
         alert.setHeaderText(null);
         alert.setContentText("The inserted " + address + " address is not present!");
+
+        return alert;
+    }
+
+    private static Alert badRequest(){
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Client Error");
+        alert.setHeaderText(null);
+        alert.setContentText("The client sent a malformed request to the server: contact the producer of the app");
 
         return alert;
     }

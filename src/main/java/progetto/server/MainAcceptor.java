@@ -1,9 +1,6 @@
 package progetto.server;
 
-import com.opencsv.bean.StatefulBeanToCsv;
-import com.opencsv.bean.StatefulBeanToCsvBuilder;
 import javafx.scene.Scene;
-import progetto.common.Mail;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.layout.BorderPane;
@@ -30,7 +27,7 @@ public class MainAcceptor extends Application {
         ServerLogController serverLogController = serverLogLoader.getController();
 
         // Instantiate a new Model
-        Mailboxes mailboxes = new Mailboxes("C:\\Users\\stefa\\Desktop\\mailboxes\\");
+        Mailboxes mailboxes = new Mailboxes("src\\main\\java\\progetto\\server\\mailboxes\\");
 
         // Initialize the controller with the proper information and return the listener thread
         startListener = serverLogController.initController(mailboxes, executors);

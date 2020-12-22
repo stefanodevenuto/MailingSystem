@@ -13,7 +13,7 @@ module progetto {
     opens progetto.client.model to javafx.fxml;
 
     opens progetto.common to javafx.fxml, org.apache.commons.lang3; // Required by OpenCSV
-    opens progetto.common.converters to javafx.fxml, org.apache.commons.lang3;
+
 
     exports progetto.server;
 
@@ -22,5 +22,5 @@ module progetto {
     exports progetto.client.model;
 
     exports progetto.common;
-    exports progetto.common.converters;
+
 }

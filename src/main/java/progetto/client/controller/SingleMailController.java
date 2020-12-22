@@ -34,7 +34,7 @@ public class SingleMailController {
     private static final int LIST_CELL_HEIGHT = 24;             // The height of a single list row
 
     private TranslateTransition hideGridPane;                   // The delete mail animation
-    private boolean showed = true;                              // Reveal the state of the view
+    private boolean showed = false;                              // Reveal the state of the view
     private NewMailController newMailController;                // The controller of the single mail view
 
     @FXML
@@ -135,16 +135,7 @@ public class SingleMailController {
                     unbindAll();
                 }
 
-                // If a new mail doesn't exist
-                if (newMail == null) {
-                    currentTitle.setText("");
-                    currentSender.setText("");
-                    currentRecipients.setItems(null);
-                    currentText.setText("");
-
-                    // In order to make them not visible when an empty MailList arrive
-                    gridPane.setVisible(false);
-                } else {
+                if(newMail != null){
                     // Custom bind to resize the list view size to the number of recipients
                     IntegerBinding recipientsSize = Bindings.size(newMail.recipientsProperty()).multiply(LIST_CELL_HEIGHT);
 
@@ -154,10 +145,10 @@ public class SingleMailController {
                     recipientsRow.prefHeightProperty().bind(recipientsSize);
 
                     // Bind all properties to the new mail
-                    bindAll(newMail.titleProperty(), newMail.senderProperty(),
-                            newMail.recipientsProperty(), newMail.textProperty());
+                    bindAll(newMail);
 
-                    gridPane.setVisible(true);
+                    //gridPane.setVisible(true);
+                    show();
                 }
             }
         });
@@ -187,13 +178,12 @@ public class SingleMailController {
     }
 
     // Useful method to bind all properties at once
-    private void bindAll(StringProperty titleProperty, StringProperty senderProperty,
-                         ObservableList<String> recipientsProperty, StringProperty textProperty){
+    private void bindAll(Mail newMail){
 
-        currentTitle.textProperty().bind(titleProperty);
-        currentSender.textProperty().bind(senderProperty);
-        currentRecipients.setItems(recipientsProperty);
-        currentText.textProperty().bind(textProperty);
+        currentTitle.textProperty().bind(newMail.titleProperty());
+        currentSender.textProperty().bind(newMail.senderProperty());
+        currentRecipients.setItems(newMail.recipientsProperty());
+        currentText.textProperty().bind(newMail.textProperty());
     }
 
     // Useful method to unbind all properties at once

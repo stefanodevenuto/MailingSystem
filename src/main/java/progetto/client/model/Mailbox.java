@@ -9,7 +9,6 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Mailbox {
@@ -21,7 +20,7 @@ public class Mailbox {
     private final ObjectProperty<Mail> currentMail =                          // The current mail of the mail list
             new SimpleObjectProperty<>(null);
 
-    private boolean connected = false;
+    private final AtomicBoolean connected = new AtomicBoolean(false);
 
     // Address property usual methods
     public StringProperty addressProperty() { return this.address; }
@@ -30,18 +29,10 @@ public class Mailbox {
 
     // Current mail list property usual methods
     public ObservableList<Mail> currentMailListProperty() { return currentMailList; }
-    /*public synchronized void setCurrentMailList(List<Mail> current) {
-        System.out.println("Setting: ");
-        for(Mail m : current)
-            System.out.print(m + " ");
-        currentMailList = FXCollections.observableArrayList(current);
-    }*/
     public synchronized void addCurrentMailList(Mail mail){ currentMailList.add(mail); }
-    //public List<Mail> getCurrentMailList() { return new ArrayList<>(currentMailListProperty()); }
     public synchronized void removeCurrentMail(){ currentMailList.remove(getCurrentMail()); }
     public synchronized void clearCurrentMailList() { currentMailListProperty().clear(); }
     public synchronized int getSizeCurrentMailList() { return currentMailListProperty().size(); }
-
 
     // Current mail property usual methods
     public ObjectProperty<Mail> currentMailProperty() {
@@ -52,11 +43,10 @@ public class Mailbox {
         currentMailProperty().set(mail);
     }
 
-    public synchronized void setConnected(boolean connected) {
-        this.connected = connected;
+    public void setConnected(boolean connected) {
+        this.connected.set(connected);
     }
-
-    public synchronized boolean getConnected() {
-        return connected;
+    public boolean getConnected() {
+        return connected.get();
     }
 }

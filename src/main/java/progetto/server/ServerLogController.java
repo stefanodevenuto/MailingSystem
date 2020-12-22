@@ -1,10 +1,12 @@
 package progetto.server;
 
 import javafx.application.Platform;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.value.ObservableValue;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import progetto.client.model.Mailbox;
+import javafx.util.Callback;
 import progetto.common.Mail;
 import javafx.fxml.FXML;
 import progetto.common.Request;
@@ -31,7 +33,7 @@ public class ServerLogController {
     private TableColumn<Log, String> requesterColumn;               // Requester column of the table
 
     @FXML
-    private TableColumn<Log, Request> requestColumn;                // Request column of the table
+    private TableColumn<Log, String> requestColumn;                // Request column of the table
 
     @FXML
     private TableColumn<Log, Image> statusImageColumn;              // Status image column of the table
@@ -61,7 +63,17 @@ public class ServerLogController {
         // Set the cell value factory form every column
         dateColumn.setCellValueFactory(date -> date.getValue().dateTimeProperty());
         requesterColumn.setCellValueFactory(requester -> requester.getValue().requesterProperty());
-        requestColumn.setCellValueFactory(request -> request.getValue().requestProperty());
+
+        requestColumn.setCellValueFactory(logRequestCellDataFeatures -> {
+            Log log = logRequestCellDataFeatures.getValue();
+
+            if (log.getRequest() != null) {
+                return new SimpleStringProperty(log.getRequest().toString());
+            } else {
+                return new SimpleStringProperty("-- Not Arrived --");
+            }
+
+        });
 
         // Set the value factory of the status image column in order to properly visualize the images
         statusImageColumn.setCellFactory(logImageViewTableColumn -> {
@@ -109,7 +121,7 @@ public class ServerLogController {
                     executors.execute(requestsHandler);
                 }
             } catch (IOException e) {
-                // Socket is closed // TODO: capire se va bene una cosa così
+                // Socket is closed
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -145,8 +157,11 @@ public class ServerLogController {
 
                 // Check if it's a properly formatted Request
                 if(!(request instanceof Request)) {
-                    System.out.println("Server: BAD REQUEST");
-                    badRequestError(toClient);
+
+                    // Create a bad request log
+                    Log log = new Log("Unknown", null, Mailboxes.CROSS);
+                    mailboxes.addNewLog(log);
+                    badRequestError(toClient, log);
                     return;
                 }
 
@@ -157,7 +172,7 @@ public class ServerLogController {
                 Log log = new Log(r.getAddress(), r, Mailboxes.LOAD);
 
                 // Add the log to the list, on order to make it visible in the table
-                mailboxes.logsProperty().add(log);
+                mailboxes.addNewLog(log);
 
                 // Create and execute a new Task base on the request type
                 switch (r.getType()) {
@@ -183,8 +198,9 @@ public class ServerLogController {
                 }
 
             } catch (IOException | ClassNotFoundException e) {
-                //connectionError(r);
-                //e.printStackTrace(); // TODO: capire se va bene una cosa così
+                Log log = new Log("Unknown", null, Mailboxes.CROSS);
+                mailboxes.addNewLog(log);
+                connectionError(log);
             }
         }
     }
@@ -377,13 +393,19 @@ public class ServerLogController {
     }
 
     // Send an bad request error response to the requester
-    private void badRequestError(ObjectOutputStream toClient){
+    private void badRequestError(ObjectOutputStream toClient, Log log){
         try {
             Response response = new Response(Response.BAD_REQUEST);
             toClient.writeObject(response);
 
+            System.out.println("Setto a bad rewuets");
+            Platform.runLater(() -> {
+                log.setStatus(Mailboxes.CROSS);
+                log.setStatusText("Bad request");
+            });
+
         } catch (IOException e){
-            // Client disconnected, no request to update
+            connectionError(log);
         }
     }
 

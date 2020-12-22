@@ -94,13 +94,7 @@ public class NewMailController {
                 }
 
                 // If a new mail doesn't exist
-                if (newMail == null) {
-                    currentTitle.setText("");
-                    currentRecipientsTextField.setText("");
-                    currentRecipientsListView.setItems(null);
-                    currentText.setText("");
-
-                } else {
+                if (newMail != null) {
 
                     // Bind all to the new mail
                     currentTitle.textProperty().bindBidirectional(newMail.titleProperty());

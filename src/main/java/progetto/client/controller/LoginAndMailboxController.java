@@ -59,8 +59,6 @@ public class LoginAndMailboxController {
     public void handleNewButton(ActionEvent actionEvent) {
         // Create a new mail
         Mail newMail = new Mail();
-        //newMail.setRecipients(new ArrayList<>());
-
         mailbox.setCurrentMail(newMail);
 
         // Show the new mail view
@@ -119,8 +117,6 @@ public class LoginAndMailboxController {
 
     @FXML
     public void handleMouseClicked(MouseEvent click) {
-        singleMailController.show();
-
         Mail m = mailListView.getSelectionModel().getSelectedItem();
 
         if(m != null){
@@ -132,6 +128,7 @@ public class LoginAndMailboxController {
             // Change the current mail
             mailbox.setCurrentMail(m);
             root.setRight(screenMap.get("singleMail"));
+            singleMailController.show();
         }
     }
 }

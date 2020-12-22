@@ -56,6 +56,7 @@ public class Mailboxes {
     public ObservableList<Log> logsProperty() {
         return logs;
     }
+    public void addNewLog(Log log) { logsProperty().add(log); }
     public void setLogs(ObservableList<Log> current) {
         logs = current;
     }
@@ -76,10 +77,8 @@ public class Mailboxes {
      */
     public List<Mail> getMailboxMailList(String address, int skipLines) throws NoSuchElementException, InternalError{
         Mailbox m = mailboxList.get(address);
-        if(m == null){
-            System.out.println("GetMailList: UTENTE NON ESISTE");
+        if(m == null)
             throw new NoSuchElementException();
-        }
         return m.getMailList(skipLines);
     }
 
@@ -92,10 +91,8 @@ public class Mailboxes {
      */
     public void updateMailboxMailList(String address, Mail mail) throws NoSuchElementException, InternalError{
         Mailbox m = mailboxList.get(address);
-        if(m == null){
-            System.out.println("Update: UTENTE NON ESISTE");
+        if(m == null)
             throw new NoSuchElementException();
-        }
         m.updateMailList(mail);
     }
 
@@ -108,10 +105,8 @@ public class Mailboxes {
      */
     public void deleteMailboxMail(String address, int mailID) throws NoSuchElementException, InternalError{
         Mailbox m = mailboxList.get(address);
-        if(m == null){
-            System.out.println("Delete: UTENTE NON ESISTE");
+        if(m == null)
             throw new NoSuchElementException();
-        }
         m.deleteMail(mailID);
     }
 
@@ -142,7 +137,6 @@ public class Mailboxes {
                 emailCounter.set(getIDFromLine(lastLine) + 1);
             } catch (IOException e){
                 // Set counter to 0 otherwise (first mail)
-                System.out.println("IOException");
                 emailCounter.set(0);
             }
         }
@@ -260,7 +254,7 @@ public class Mailboxes {
                     if(bw != null)
                         bw.close();
                 } catch (Exception ignored) {
-                    // TODO: capire come gestirla qua
+                    // Error on closing, nothing to log
                 }
             }
 
