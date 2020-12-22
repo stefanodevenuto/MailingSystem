@@ -1,5 +1,5 @@
 package progetto.common;
-
+import com.opencsv.bean.AbstractBeanField;
 import com.opencsv.bean.CsvBindByPosition;
 import com.opencsv.bean.CsvCustomBindByPosition;
 import javafx.beans.property.ObjectProperty;
@@ -8,16 +8,15 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import progetto.common.converters.LocalDateConverter;
-import progetto.common.converters.ObservableListConverter;
-import progetto.common.converters.StringPropertyConverter;
 
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class Mail implements Externalizable  {
@@ -145,4 +144,53 @@ public class Mail implements Externalizable  {
         setRecipients((List<String>) in.readObject());
     }
 
+    public static class LocalDateConverter extends AbstractBeanField<ObjectProperty<LocalDate>, String> {
+        private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");          // Date format
+
+        public LocalDateConverter() { }
+
+        @Override
+        protected Object convert(String s) {
+            return new SimpleObjectProperty<>(LocalDate.parse(s, formatter));   // Create a Local Date from string
+        }
+
+        @Override
+        public String convertToWrite(Object value) {
+            return ((LocalDate)value).format(formatter);                        // Create a new formatted string
+        }
+
+    }
+
+    public static class ObservableListConverter extends AbstractBeanField<ObservableList<String>, String> {
+        public ObservableListConverter() { }
+
+        // The recipients' addresses can't contain commas (,)
+        @Override
+        public Object convert(String value) {
+            return FXCollections.observableArrayList(new ArrayList<>(Arrays.asList(value.split(","))));
+        }
+
+        @Override
+        public String convertToWrite(Object value) {
+            return String.join(",", (List)value);
+        }
+
+    }
+
+    public static class StringPropertyConverter extends AbstractBeanField<SimpleStringProperty, String> {
+        public StringPropertyConverter() { }
+
+        @Override
+        public Object convert(String value) {
+            return new SimpleStringProperty(value);
+        }
+
+        @Override
+        public String convertToWrite(Object value) {
+            return (String)value;
+        }
+
+    }
+
 }
+
