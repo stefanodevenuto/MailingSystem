@@ -3,10 +3,8 @@ package progetto.server;
 import com.opencsv.bean.*;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.collections.ObservableMap;
 import javafx.scene.image.Image;
 import progetto.common.Mail;
-import progetto.common.Request;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -22,7 +20,7 @@ import java.util.regex.Pattern;
 
 public class Mailboxes {
     private final Map<String, Mailbox> mailboxList;                    // Mailboxes of all users indexed by mail address
-    private ObservableList<Log> logs =
+    private final ObservableList<Log> logs =
             FXCollections.observableArrayList();                       // List of logs
     private final String path;
 
@@ -42,14 +40,13 @@ public class Mailboxes {
         try(Scanner users = new Scanner(new File(path + filePath))) {
             while (users.hasNextLine()){
                 String user = users.nextLine();
-                System.out.println(user);
                 newMailbox(user);
             }
         }
 
-        LOAD = new Image(getClass().getResource("/progetto.server/load.jpg").toExternalForm());
-        CROSS = new Image(getClass().getResource("/progetto.server/cross.jpg").toExternalForm());
-        TICK = new Image(getClass().getResource("/progetto.server/tick.jpg").toExternalForm());
+        LOAD = new Image(getClass().getResource("/server/load.jpg").toExternalForm());
+        CROSS = new Image(getClass().getResource("/server/cross.jpg").toExternalForm());
+        TICK = new Image(getClass().getResource("/server/tick.jpg").toExternalForm());
     }
 
     // Logs property usual methods
@@ -57,9 +54,6 @@ public class Mailboxes {
         return logs;
     }
     public void addNewLog(Log log) { logsProperty().add(log); }
-    public void setLogs(ObservableList<Log> current) {
-        logs = current;
-    }
 
     // Create a new mailbox for an individual user
     private void newMailbox(String address) {
@@ -168,8 +162,6 @@ public class Mailboxes {
 
                 // Parse it
                 mailList = csvToBean.parse();
-
-                System.out.println("Skippo: " + skipLines + " Letto: " + mailList.size());
 
             }catch (IOException | IllegalStateException e) {
                 return mailList; // In case the file doesn't exist (mail list empty)

@@ -120,7 +120,6 @@ public class LoginAndMailboxController {
         Mail m = mailListView.getSelectionModel().getSelectedItem();
 
         if(m != null){
-            System.out.println("Clicked: " + m.getID() + " " + m.toString());
 
             // Mark it as a read mail
             m.setNewMail(false);

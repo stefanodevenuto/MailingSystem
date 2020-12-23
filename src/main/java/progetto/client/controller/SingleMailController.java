@@ -3,21 +3,15 @@ package progetto.client.controller;
 import javafx.animation.TranslateTransition;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.IntegerBinding;
-import javafx.beans.property.SimpleObjectProperty;
-import javafx.beans.property.StringProperty;
-import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.RowConstraints;
-import javafx.scene.transform.Translate;
 import javafx.util.Duration;
 import progetto.client.model.Mailbox;
 import progetto.common.Mail;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.fxml.FXML;
 
 import java.util.ArrayList;
@@ -34,7 +28,7 @@ public class SingleMailController {
     private static final int LIST_CELL_HEIGHT = 24;             // The height of a single list row
 
     private TranslateTransition hideGridPane;                   // The delete mail animation
-    private boolean showed = false;                              // Reveal the state of the view
+    private boolean showed = false;                             // Reveal the state of the view
     private NewMailController newMailController;                // The controller of the single mail view
 
     @FXML
@@ -126,30 +120,27 @@ public class SingleMailController {
         this.requester = requester;
         this.newMailController = newMailController;
 
-        this.mailbox.currentMailProperty().addListener(new ChangeListener<Mail>() {
-            @Override
-            public void changed(ObservableValue observable, Mail oldMail, Mail newMail) {
+        this.mailbox.currentMailProperty().addListener((observable, oldMail, newMail) -> {
 
-                // Unbind all if the old mail doesn't exist / doesn't exist anymore
-                if (oldMail != null) {
-                    unbindAll();
-                }
+            // Unbind all if the old mail doesn't exist / doesn't exist anymore
+            if (oldMail != null) {
+                unbindAll();
+            }
 
-                if(newMail != null){
-                    // Custom bind to resize the list view size to the number of recipients
-                    IntegerBinding recipientsSize = Bindings.size(newMail.recipientsProperty()).multiply(LIST_CELL_HEIGHT);
+            if(newMail != null){
+                // Custom bind to resize the list view size to the number of recipients
+                IntegerBinding recipientsSize = Bindings.size(newMail.recipientsProperty()).multiply(LIST_CELL_HEIGHT);
 
-                    currentRecipients.minHeightProperty().bind(recipientsSize);
-                    currentRecipients.prefHeightProperty().bind(recipientsSize);
-                    recipientsRow.minHeightProperty().bind(recipientsSize);
-                    recipientsRow.prefHeightProperty().bind(recipientsSize);
+                currentRecipients.minHeightProperty().bind(recipientsSize);
+                currentRecipients.prefHeightProperty().bind(recipientsSize);
+                recipientsRow.minHeightProperty().bind(recipientsSize);
+                recipientsRow.prefHeightProperty().bind(recipientsSize);
 
-                    // Bind all properties to the new mail
-                    bindAll(newMail);
+                // Bind all properties to the new mail
+                bindAll(newMail);
 
-                    //gridPane.setVisible(true);
-                    show();
-                }
+                //gridPane.setVisible(true);
+                show();
             }
         });
 
@@ -161,7 +152,6 @@ public class SingleMailController {
 
     // Make the grid pane visible
     public void show(){
-        System.out.println("Showed show: " + showed);
         if(!showed){
             gridPane.setTranslateX(0);
             gridPane.setVisible(true);
@@ -171,7 +161,6 @@ public class SingleMailController {
 
     // Make the grid pane invisible with animation
     public void hide(){
-        System.out.println("Showed hide: " + showed);
         if(showed){
             hideGridPane.play();
         }

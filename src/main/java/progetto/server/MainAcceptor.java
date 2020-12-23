@@ -20,7 +20,7 @@ public class MainAcceptor extends Application {
 
         // Recover loader of needed fxml file
         FXMLLoader serverLogLoader =
-                new FXMLLoader(getClass().getResource("/progetto.server/logsTableView.fxml"));
+                new FXMLLoader(getClass().getResource("/server/logsTableView.fxml"));
         root.setCenter(serverLogLoader.load());
 
         // Get the controller from the loader

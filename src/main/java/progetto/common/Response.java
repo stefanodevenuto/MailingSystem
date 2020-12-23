@@ -9,9 +9,9 @@ public class Response implements Serializable {
     public static final int INTERNAL_ERROR = 2;                         // Internal error response
     public static final int OK = 3;                                     // All ok response
 
-    private int code;                                                   // Type of response from the above
+    private final int code;                                             // Type of response from the above
     private List<Mail> body;                                            // List of mail in response to mail list request
-    private String error;                                               // Descriptive error
+    private final String error;                                         // Descriptive error
 
     /**
      * New response only with type

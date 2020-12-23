@@ -41,17 +41,9 @@ public class Mail implements Externalizable  {
     private final ObservableList<String> recipients =
             FXCollections.observableArrayList(new ArrayList<>());                        // Recipients list of the Mail
 
-    private boolean newMail = false;            // Used by client in order add specific CSS to new mails
+    private boolean newMail = false;                            // Used by client in order add specific CSS to new mails
 
     public Mail() {}
-
-    public Mail(String title, String text, String sender, LocalDate date, List<String> recipients) {
-        setTitle(title);
-        setText(text);
-        setSender(sender);
-        setDateOfDispatch(date);
-        setRecipients(recipients);
-    }
 
     //ID property usual methods
     public int getID() {
@@ -141,7 +133,20 @@ public class Mail implements Externalizable  {
         setText((String) in.readObject());
         setSender((String) in.readObject());
         setDateOfDispatch((LocalDate) in.readObject());
-        setRecipients((List<String>) in.readObject());
+
+        // Type checking for the Object
+        Object o = in.readObject();
+        List<?> temp = new ArrayList<>();
+        if(o instanceof List<?>)
+            temp = (List<?>) o;
+
+        // Type checking for every Object in the casted List
+        List<String> recipients = new ArrayList<>();
+        for (Object recipient : temp)
+            if(recipient instanceof String)
+                recipients.add((String) recipient);
+
+        setRecipients(recipients);
     }
 
     public static class LocalDateConverter extends AbstractBeanField<ObjectProperty<LocalDate>, String> {
@@ -151,7 +156,7 @@ public class Mail implements Externalizable  {
 
         @Override
         protected Object convert(String s) {
-            return new SimpleObjectProperty<>(LocalDate.parse(s, formatter));   // Create a Local Date from string
+            return new SimpleObjectProperty<>(LocalDate.parse(s, formatter));               // Create a Local Date from string
         }
 
         @Override
@@ -172,7 +177,19 @@ public class Mail implements Externalizable  {
 
         @Override
         public String convertToWrite(Object value) {
-            return String.join(",", (List)value);
+
+            // Type checking for the Object
+            List<?> temp = new ArrayList<>();
+            if(value instanceof List<?>)
+                temp = (List<?>) value;
+
+            // Type checking for every Object in the casted List
+            List<String> list = new ArrayList<>();
+            for (Object recipient : temp)
+                if(recipient instanceof String)
+                    list.add((String) recipient);
+
+            return String.join(",", list);
         }
 
     }

@@ -24,11 +24,11 @@ public class Main extends Application {
 
         // Get loaders of needed FXML files
         FXMLLoader loginAndMailboxLoader =
-                new FXMLLoader(getClass().getResource("/progetto.client/loginAndMailbox.fxml"));
+                new FXMLLoader(getClass().getResource("/client/loginAndMailbox.fxml"));
         FXMLLoader singleMailLoader =
-                new FXMLLoader(getClass().getResource("/progetto.client/singleMail.fxml"));
+                new FXMLLoader(getClass().getResource("/client/singleMail.fxml"));
         FXMLLoader newMailLoader =
-                new FXMLLoader(getClass().getResource("/progetto.client/newMail.fxml"));
+                new FXMLLoader(getClass().getResource("/client/newMail.fxml"));
 
         // Fill the map
         screenMap.put("loginAndMailbox", loginAndMailboxLoader.load());
@@ -46,7 +46,7 @@ public class Main extends Application {
 
         // Add custom CSS
         Scene scene = new Scene(root);
-        scene.getStylesheets().add(Main.class.getResource("/progetto.client/style.css").toExternalForm());
+        scene.getStylesheets().add(Main.class.getResource("/client/style.css").toExternalForm());
 
         // Instantiate a new Model and initialize the controllers
         Mailbox mailbox = new Mailbox();

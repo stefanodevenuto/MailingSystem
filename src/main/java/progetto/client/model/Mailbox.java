@@ -43,6 +43,7 @@ public class Mailbox {
         currentMailProperty().set(mail);
     }
 
+    // Connected setter/getter
     public void setConnected(boolean connected) {
         this.connected.set(connected);
     }

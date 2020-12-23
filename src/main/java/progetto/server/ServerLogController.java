@@ -2,11 +2,9 @@ package progetto.server;
 
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.value.ObservableValue;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.util.Callback;
 import progetto.common.Mail;
 import javafx.fxml.FXML;
 import progetto.common.Request;
@@ -224,12 +222,12 @@ public class ServerLogController {
                 List<Mail> mailList = mailboxes.getMailboxMailList(request.getAddress(), request.getCounter());
 
                 // Send an affirmative response to client
-                sendOK(toClient, request, mailList, log);
+                sendOK(toClient, mailList, log);
             } catch(NoSuchElementException noSuchElementException) {
                 // If the given mail address is not present
-                addressNotFoundError(toClient, request.getAddress(), request, log);
+                addressNotFoundError(toClient, request.getAddress(), log);
             } catch (Exception e){
-                internalError(toClient, request, log);  // If something gone wrong
+                internalError(toClient, log);  // If something gone wrong
             }
         }
     }
@@ -260,12 +258,12 @@ public class ServerLogController {
                 }
 
                 // Send an affirmative response to client
-                sendOK(toClient,request, log);
+                sendOK(toClient, log);
             } catch (NoSuchElementException noSuchElementException){
                 // If the given mail addresses are not present, associated with the first wrong one
-                addressNotFoundError(toClient, lastAddress, request, log);
+                addressNotFoundError(toClient, lastAddress, log);
             } catch (Exception e){
-                internalError(toClient, request, log);  // If something gone wrong
+                internalError(toClient, log);  // If something gone wrong
             }
 
         }
@@ -290,12 +288,12 @@ public class ServerLogController {
                 mailboxes.deleteMailboxMail(request.getAddress(), request.getBody().getID());
 
                 // Send an affirmative response to client
-                sendOK(toClient, request, log);
+                sendOK(toClient, log);
             } catch (NoSuchElementException noSuchElementException) {
                 // If the given mail address is not present
-                addressNotFoundError(toClient, request.getAddress(), request, log);
+                addressNotFoundError(toClient, request.getAddress(), log);
             } catch (Exception e) {
-                internalError(toClient, request, log);  // If something gone wrong
+                internalError(toClient, log);  // If something gone wrong
             }
         }
     }
@@ -303,7 +301,7 @@ public class ServerLogController {
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     // Send an empty affirmative response to the requester
-    private void sendOK(ObjectOutputStream toClient, Request request, Log log){
+    private void sendOK(ObjectOutputStream toClient, Log log){
         try{
             // Create a new Response with the OK code and send it
             Response response = new Response(Response.OK);
@@ -321,7 +319,7 @@ public class ServerLogController {
     }
 
     // Send an affirmative response to the requester associated with the mail list
-    private void sendOK(ObjectOutputStream toClient, Request request, List<Mail> mailList, Log log){
+    private void sendOK(ObjectOutputStream toClient, List<Mail> mailList, Log log){
         try{
             // Create a new Response with the OK code, associate the mail list and send it
             Response response = new Response(Response.OK, mailList);
@@ -339,7 +337,7 @@ public class ServerLogController {
     }
 
     // Send an internal error response to the requester
-    private void internalError(ObjectOutputStream toClient, Request request, Log log) {
+    private void internalError(ObjectOutputStream toClient, Log log) {
         try{
             // Create a new Response with the INTERNAL_ERROR code and send it
             Response response = new Response(Response.INTERNAL_ERROR);
@@ -358,7 +356,7 @@ public class ServerLogController {
     }
 
     // Send an address not found error response to the requester associated with the mail address not present
-    private void addressNotFoundError(ObjectOutputStream toClient, String address, Request request, Log log) {
+    private void addressNotFoundError(ObjectOutputStream toClient, String address, Log log) {
         try {
             // Create a new Response with the ADDRESS_NOT_FOUND code, associate the wrong mail address and send it
             Response response = new Response(Response.ADDRESS_NOT_FOUND, address);
@@ -398,7 +396,6 @@ public class ServerLogController {
             Response response = new Response(Response.BAD_REQUEST);
             toClient.writeObject(response);
 
-            System.out.println("Setto a bad rewuets");
             Platform.runLater(() -> {
                 log.setStatus(Mailboxes.CROSS);
                 log.setStatusText("Bad request");

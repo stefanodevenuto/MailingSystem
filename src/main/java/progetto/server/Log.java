@@ -5,7 +5,6 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import progetto.common.Request;
 
 import java.time.LocalDateTime;
@@ -31,12 +30,10 @@ public class Log {
     // Arrival time of request property usual methods
     public StringProperty dateTimeProperty() { return dateTime; }
     public void setLocalDateTime(String localDateTime) { dateTimeProperty().setValue(localDateTime); }
-    public String getLocalDateTime() { return dateTimeProperty().get(); }
 
     // Requester property usual methods
     public StringProperty requesterProperty() { return requester; }
     public void setRequester(String requester) { requesterProperty().setValue(requester); }
-    public String getRequester() { return requesterProperty().get(); }
 
     // Request property usual methods
     public ObjectProperty<Request> requestProperty() { return request; }
@@ -46,11 +43,9 @@ public class Log {
     // Status text property usual methods
     public StringProperty statusTextProperty() { return statusText; }
     public void setStatusText(String text) { statusTextProperty().setValue(text); }
-    public String getStatusText() { return statusTextProperty().get(); }
 
     // Status image property usual methods
     public ObjectProperty<Image> statusProperty() { return status; }
     public void setStatus(Image image) { status.set(image); }
-    public Image getStatus() { return status.get(); }
 
 }
