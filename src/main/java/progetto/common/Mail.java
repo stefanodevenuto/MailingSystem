@@ -22,26 +22,26 @@ import java.util.List;
 public class Mail implements Externalizable  {
 
     @CsvBindByPosition(position = 0)
-    private int ID;
+    public int ID;
 
     @CsvCustomBindByPosition(position = 1, converter = StringPropertyConverter.class)    // In order to parse it to CSV
-    private final StringProperty title = new SimpleStringProperty();                     // Title of the Mail
+    public final StringProperty title = new SimpleStringProperty();                     // Title of the Mail
 
     @CsvCustomBindByPosition(position = 2, converter = StringPropertyConverter.class)
-    private final StringProperty text = new SimpleStringProperty();                      // Text of the Mail
+    public final StringProperty text = new SimpleStringProperty();                      // Text of the Mail
 
     @CsvCustomBindByPosition(position = 3, converter = StringPropertyConverter.class)
-    private final StringProperty sender =  new SimpleStringProperty();                   // Sender of the Mail
+    public final StringProperty sender =  new SimpleStringProperty();                   // Sender of the Mail
 
     @CsvCustomBindByPosition(position = 4, converter = LocalDateConverter.class)
-    private final ObjectProperty<LocalDate> dateOfDispatch =
+    public final ObjectProperty<LocalDate> dateOfDispatch =
             new SimpleObjectProperty<>();                                                // Date of dispatch of the Mail
 
     @CsvCustomBindByPosition(position = 5, converter = ObservableListConverter.class)
-    private final ObservableList<String> recipients =
+    public final ObservableList<String> recipients =
             FXCollections.observableArrayList(new ArrayList<>());                        // Recipients list of the Mail
 
-    private boolean newMail = false;                            // Used by client in order add specific CSS to new mails
+    public boolean newMail = false;                            // Used by client in order add specific CSS to new mails
 
     public Mail() {}
 

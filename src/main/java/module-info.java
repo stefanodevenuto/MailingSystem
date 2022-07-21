@@ -14,7 +14,6 @@ module progetto {
 
     opens progetto.common to javafx.fxml, org.apache.commons.lang3; // Required by OpenCSV
 
-
     exports progetto.server;
 
     exports progetto.client;

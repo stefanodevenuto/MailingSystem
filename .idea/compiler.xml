@@ -20,6 +20,7 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="ProgettoMaven" />
+        <module name="untitled" />
       </profile>
     </annotationProcessing>
   </component>
